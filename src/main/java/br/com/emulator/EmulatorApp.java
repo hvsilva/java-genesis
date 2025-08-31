@@ -95,7 +95,6 @@ public class EmulatorApp extends Application {
 				}
 			}
 		}.start();
-
 	}
 
 }
