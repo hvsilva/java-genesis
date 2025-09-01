@@ -21,7 +21,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-public class EmulatorApp extends Application {
+public class EmulatorApp01 extends Application {
 
     private Emulator emulator;
     private AtomicBoolean running = new AtomicBoolean(false);
@@ -77,7 +77,7 @@ public class EmulatorApp extends Application {
                     info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
 
                     // Disassemble didático
-                    String disasm = DisassemblerCPU68000Advanced.generateDisassembly(cart);
+                    String disasm = DisassemblerCPU68000Advanced02.generateDisassembly(cart);
                     disassemblyArea.setText(disasm);
 
                 } catch (Exception ex) {
