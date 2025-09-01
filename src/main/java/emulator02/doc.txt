@@ -1,0 +1,6 @@
+├── EmulatorApp.java         # JavaFX UI
+     ├── Emulator.java       # Loop principal
+     ├── CPU68000.java       # Núcleo da CPU 68k
+     ├── Memory.java         # Barramento / RAM / ROM
+     ├── Cartridge.java      # Loader de ROM
+     └── VDP.java            # Vídeo Display Processor
