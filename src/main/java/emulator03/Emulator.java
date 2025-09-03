@@ -1,9 +1,10 @@
-package emulator02;
+package emulator03;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.paint.Color;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Emulator {
 

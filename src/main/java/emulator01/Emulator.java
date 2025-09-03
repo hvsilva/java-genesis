@@ -26,6 +26,7 @@ public class Emulator {
 		System.out.println("Iniciando emulador Mega Drive...");
 
 		while (true) {
+			
 			// Executa 1 instrução 68k
 			cpu.step();
 

@@ -11,7 +11,7 @@ public class Memory {
 
     public int readWord(int address) {
         int high = readByte(address) & 0xFF;
-        int low = readByte(address + 1) & 0xFF;
+        int low  = readByte(address + 1) & 0xFF;
         return (high << 8) | low;
     }
 
