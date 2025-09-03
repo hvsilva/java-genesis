@@ -2,6 +2,7 @@ package emulator03;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.prefs.Preferences;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -23,6 +24,9 @@ public class MainApp extends Application {
 	private Emulator emulator;
 	private AtomicBoolean running = new AtomicBoolean(false);
 	private TextArea disassemblyArea;
+
+	// Preferences para armazenar caminho da última ROM
+	private Preferences prefs = Preferences.userNodeForPackage(MainApp.class);
 
 	public static void main(String[] args) {
 		launch(args);
@@ -61,26 +65,24 @@ public class MainApp extends Application {
 		primaryStage.setScene(scene);
 		primaryStage.show();
 
+		// --- Tenta carregar última ROM automaticamente ---
+		String lastPath = prefs.get("lastRomPath", null);
+		if (lastPath != null) {
+			File lastFile = new File(lastPath);
+			if (lastFile.exists()) {
+				loadROM(lastFile, gc, info);
+			}
+		}
+
 		// Load ROM e Disassemble
 		loadBtn.setOnAction(ev -> {
 			FileChooser chooser = new FileChooser();
 			chooser.setTitle("Select ROM (bin/rom)");
 			File file = chooser.showOpenDialog(primaryStage);
 			if (file != null) {
-				try {
-					Cartridge cart = new Cartridge(file.getAbsolutePath());
-					Memory memory = new Memory(cart);
-					emulator = new Emulator(memory, gc);
-					info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
-
-					// Disassemble didático
-					String disasm = DisassemblerCPU68000Advanced.generateDisassembly(cart);
-					disassemblyArea.setText(disasm);
-
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					info.setText("Failed to load ROM: " + ex.getMessage());
-				}
+				loadROM(file, gc, info);
+				// Salva o caminho nas preferências
+				prefs.put("lastRomPath", file.getAbsolutePath());
 			}
 		});
 
@@ -109,12 +111,28 @@ public class MainApp extends Application {
 				if (emulator != null) {
 					emulator.drawFrame();
 
-					// Atualiza debugger
-					CPU68000 cpu = emulator.getCpu();
-					String dump = DisassemblerCPU68000Advanced.dumpCPUState(cpu);
-					disassemblyArea.setText(dump);
+//					String executed = emulator.getCpu().stepWithDisasm();
+//					disassemblyArea.appendText(executed + "\n");
 				}
 			}
 		}.start();
+	}
+
+	// Método utilitário para carregar ROM
+	private void loadROM(File file, GraphicsContext gc, Label info) {
+		try {
+			Cartridge cart = new Cartridge(file.getAbsolutePath());
+			Memory memory = new Memory(cart);
+			emulator = new Emulator(memory, gc);
+			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
+
+			// Disassemble didático
+			String disasm = Disassembler68000.generateDisassembly(cart);
+			disassemblyArea.setText(disasm);
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			info.setText("Failed to load ROM: " + ex.getMessage());
+		}
 	}
 }

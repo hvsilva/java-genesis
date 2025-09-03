@@ -178,6 +178,25 @@ public class CPU68000 {
 		}
 		System.out.printf("| Flags [Z=%b N=%b C=%b V=%b]%n", flagZ, flagN, flagC, flagV);
 	}
+	
+	public String stepWithDisasm() {
+		int opcode = memory.readWord(pc);
+	    int currentPC = pc;
+	    pc += 2;
+
+	    // Cria um nextPc "falso" para reaproveitar o decode do disassembler
+	    int[] nextPc = new int[] { pc };
+	    byte[] fakeRom = memory.getRawData(); // precisa expor isso em Memory
+	    String instrText = Disassembler68000.decodeInstruction(opcode, currentPC, fakeRom, nextPc);
+
+	    // Ajusta PC se decode avançou
+	    pc = nextPc[0];
+
+	    // Executa a instrução real
+	    decodeAndExecute(opcode);
+
+	    return String.format("%06X: %04X  %s", currentPC, opcode, instrText.replaceAll("##NEXT##\\d+", ""));
+	}
 
 	// Getters
 	public int getPC() {

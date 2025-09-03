@@ -42,4 +42,8 @@ public class Memory {
 		writeWord(addr + 2, value & 0xFFFF);
 	}
 
+	public byte[] getRawData() {
+		return ram; // ou ram, depende de onde está
+	}
+
 }
