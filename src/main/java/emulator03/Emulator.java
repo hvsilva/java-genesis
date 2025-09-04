@@ -27,7 +27,7 @@ public class Emulator {
 		emuThread = new Thread(() -> {
 			while (running.get()) {
 				cpu.step(); // executa instrução
-				vdp.step(); // atualiza framebuffer
+				vdp.step(memory.getVRAM()); // atualiza framebuffer com a VRAM
 				try {
 					Thread.sleep(16);
 				} catch (InterruptedException ignored) {

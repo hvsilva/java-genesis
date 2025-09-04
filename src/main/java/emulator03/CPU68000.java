@@ -5,12 +5,20 @@ public class CPU68000 {
 	private int[] registers = new int[16]; // D0-D7 (0-7), A0-A7 (8-15)
 	private int pc; // Program Counter
 	private Memory memory;
+	private VDP vdp;
 
 	// Status Register simplificado
 	private boolean flagZ; // Zero
 	private boolean flagN; // Negative
 	private boolean flagC; // Carry
 	private boolean flagV; // Overflow
+
+	public CPU68000(Memory mem, VDP vdp) {
+		this.memory = mem;
+		this.vdp = vdp;
+		this.pc = 0;
+		setSP(0xFFFE);
+	}
 
 	// Pilha simples em A7 (SP)
 	private int getSP() {
@@ -59,7 +67,7 @@ public class CPU68000 {
 			break;
 		case 0x4E75:
 			executeRTS();
-			break;
+			break;	
 		default:
 			System.out.printf("Opcode não implementado: %04X%n", opcode);
 		}
@@ -67,12 +75,14 @@ public class CPU68000 {
 
 	/** MOVE #imediato, Dx */
 	private void executeMOVE(int opcode) {
-		int reg = opcode & 0x0007;
-		int value = memory.readWord(pc);
-		pc += 2;
-		registers[reg] = value & 0xFFFF;
-		updateFlags(value);
-		System.out.printf("MOVE #%d -> D%d%n", value, reg);
+		int regD = opcode & 0x0007;
+	    int regA = (opcode >> 9) & 0x7; // registrador de endereço
+
+	    int value = registers[regD]; // valor do registrador Dn
+	    int addr = registers[regA];  // endereço de destino
+
+	    memory.writeWord(addr, value);
+	    System.out.printf("MOVE D%d -> (A%d) addr=%04X value=%04X%n", regD, regA, addr, value);
 	}
 
 	/** ADD #imediato, Dx */
@@ -177,25 +187,6 @@ public class CPU68000 {
 			System.out.printf("D%d=%04X ", i, registers[i]);
 		}
 		System.out.printf("| Flags [Z=%b N=%b C=%b V=%b]%n", flagZ, flagN, flagC, flagV);
-	}
-	
-	public String stepWithDisasm() {
-		int opcode = memory.readWord(pc);
-	    int currentPC = pc;
-	    pc += 2;
-
-	    // Cria um nextPc "falso" para reaproveitar o decode do disassembler
-	    int[] nextPc = new int[] { pc };
-	    byte[] fakeRom = memory.getRawData(); // precisa expor isso em Memory
-	    String instrText = Disassembler68000.decodeInstruction(opcode, currentPC, fakeRom, nextPc);
-
-	    // Ajusta PC se decode avançou
-	    pc = nextPc[0];
-
-	    // Executa a instrução real
-	    decodeAndExecute(opcode);
-
-	    return String.format("%06X: %04X  %s", currentPC, opcode, instrText.replaceAll("##NEXT##\\d+", ""));
 	}
 
 	// Getters

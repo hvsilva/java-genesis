@@ -127,8 +127,8 @@ public class MainApp extends Application {
 			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
 
 			// Disassemble didático
-			String disasm = Disassembler68000.generateDisassembly(cart);
-			disassemblyArea.setText(disasm);
+//			String disasm = Disassembler68000.generateDisassembly(cart);
+//			disassemblyArea.setText(disasm);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
