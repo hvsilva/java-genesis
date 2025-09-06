@@ -1,14 +1,14 @@
 package br.com.emulator.java.addressing;
 
-import br.com.emulator.java.Gen68;
+import br.com.emulator.java.CPU68000;
 import br.com.emulator.java.Size;
 import br.com.emulator.java.instruction.Operation;
 
 public class DataRegisterDirect implements AddressingMode {
 
-	private Gen68 cpu;
+	private CPU68000 cpu;
 	
-	public DataRegisterDirect(Gen68 cpu) {
+	public DataRegisterDirect(CPU68000 cpu) {
 		this.cpu = cpu;
 	}
 	

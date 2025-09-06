@@ -1,14 +1,14 @@
 package br.com.emulator.java.instruction;
 
-import br.com.emulator.java.Gen68;
+import br.com.emulator.java.CPU68000;
 import br.com.emulator.java.GenInstruction;
 import br.com.emulator.java.Size;
 
 public class DBcc implements GenInstructionHandler {
 
-	final Gen68 cpu;
+	final CPU68000 cpu;
 	
-	public DBcc(Gen68 cpu) {
+	public DBcc(CPU68000 cpu) {
 		this.cpu = cpu;
 	}
 	

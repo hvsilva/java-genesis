@@ -1,8 +1,7 @@
 package emulator02;
 
-public class CPU68000 {
-	// Registradores: D0-D7 = 0-7, A0-A7 = 8-15
-	private int[] registers = new int[16];
+public class CPU68000 {	
+	private int[] registers = new int[16]; // Registradores: D0-D7 = 0-7, A0-A7 = 8-15
 	private int pc; // Program Counter
 	private Memory memory;
 
@@ -16,39 +15,6 @@ public class CPU68000 {
 		this.memory = mem;
 		this.pc = 0;
 		setSP(0xFFFE); // topo da pilha
-	}
-
-	// Getters e setters para registradores D e A
-	public int getD(int i) {
-		return registers[i] & 0xFFFF;
-	}
-
-	public void setD(int i, int value) {
-		registers[i] = value & 0xFFFF;
-	}
-
-	public int getA(int i) {
-		return registers[8 + i] & 0xFFFF;
-	}
-
-	public void setA(int i, int value) {
-		registers[8 + i] = value & 0xFFFF;
-	}
-
-	public int getPC() {
-		return pc;
-	}
-
-	public void setPC(int addr) {
-		pc = addr & 0xFFFF;
-	}
-
-	public int getSP() {
-		return registers[15];
-	}
-
-	public void setSP(int value) {
-		registers[15] = value & 0xFFFF;
 	}
 
 	// Step: executa uma instrução
@@ -190,5 +156,38 @@ public class CPU68000 {
 			System.out.printf("A%d=%04X ", i, getA(i));
 		System.out.printf("SP=%04X%n", getSP());
 		System.out.printf("Flags [Z=%b N=%b C=%b V=%b]%n", flagZ, flagN, flagC, flagV);
+	}
+
+	// Getters e setters para registradores D e A
+	public int getD(int i) {
+		return registers[i] & 0xFFFF;
+	}
+
+	public void setD(int i, int value) {
+		registers[i] = value & 0xFFFF;
+	}
+
+	public int getA(int i) {
+		return registers[8 + i] & 0xFFFF;
+	}
+
+	public void setA(int i, int value) {
+		registers[8 + i] = value & 0xFFFF;
+	}
+
+	public int getPC() {
+		return pc;
+	}
+
+	public void setPC(int addr) {
+		pc = addr & 0xFFFF;
+	}
+
+	public int getSP() {
+		return registers[15];
+	}
+
+	public void setSP(int value) {
+		registers[15] = value & 0xFFFF;
 	}
 }

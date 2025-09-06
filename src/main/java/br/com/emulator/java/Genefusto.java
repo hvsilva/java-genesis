@@ -122,9 +122,9 @@ public class Genefusto {
 
 	GenMemory memory;
 	GenVdp vdp;
-	GenBus bus;
+	GenEmulator bus;
 	GenZ80 z80;
-	Gen68 cpu;
+	CPU68000 cpu;
 	GenJoypad joypad;
 
 	private static int[] pixels;
@@ -171,11 +171,11 @@ public class Genefusto {
 	}
 
 	Genefusto(boolean debug) {
-		bus = new GenBus(this, null, null, null, null, null);
+		bus = new GenEmulator(this, null, null, null, null, null);
 		memory = new GenMemory();
 		vdp = new GenVdp(bus);
 		z80 = new GenZ80(bus);
-		cpu = new Gen68(bus);
+		cpu = new CPU68000(bus);
 		joypad = new GenJoypad();
 
 		bus.memory = memory;

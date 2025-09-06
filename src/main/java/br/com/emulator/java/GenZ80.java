@@ -57,7 +57,7 @@ public class GenZ80 {
 	int IX, IY;
 	int R;
 
-	GenBus bus;
+	GenEmulator bus;
 	
 	int PC;
 	int SP;
@@ -68,7 +68,7 @@ public class GenZ80 {
 	
 	int[] flagsSZ = new int[256];
 	
-	public GenZ80(GenBus bus) {
+	public GenZ80(GenEmulator bus) {
 		this.bus = bus;
 		
 		initCache();

@@ -14,67 +14,96 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.io.File;
+import java.util.prefs.Preferences;
+
+import emulator03.Cartridge;
+import emulator03.Emulator;
+import emulator03.MainApp;
+import emulator03.Memory;
 
 public class EmulatorApp extends Application {
-    private Emulator emulator;
+	private Emulator emulator;
 
-    public static void main(String[] args) {
-        launch(args);
-    }
+	// Preferences para armazenar caminho da última ROM
+	private Preferences prefs = Preferences.userNodeForPackage(MainApp.class);
 
-    @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Emulador Didático Mega Drive");
+	public static void main(String[] args) {
+		launch(args);
+	}
 
-        BorderPane root = new BorderPane();
-        Canvas canvas = new Canvas(320, 224);
-        GraphicsContext gc = canvas.getGraphicsContext2D();
+	@Override
+	public void start(Stage primaryStage) {
+		primaryStage.setTitle("Emulador Didático Mega Drive");
 
-        Button loadBtn = new Button("Load ROM");
-        Button startBtn = new Button("Start");
-        Button stopBtn = new Button("Stop");
-        Label info = new Label("No ROM loaded");
+		BorderPane root = new BorderPane();
+		Canvas canvas = new Canvas(320, 224);
+		GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        HBox top = new HBox(8, loadBtn, startBtn, stopBtn, info);
-        root.setTop(top);
-        root.setCenter(canvas);
+		Button loadBtn = new Button("Load ROM");
+		Button startBtn = new Button("Start");
+		Button stopBtn = new Button("Stop");
+		Label info = new Label("No ROM loaded");
 
-        Scene scene = new Scene(root, 640, 480, Color.BLACK);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+		HBox top = new HBox(8, loadBtn, startBtn, stopBtn, info);
+		root.setTop(top);
+		root.setCenter(canvas);
 
-        loadBtn.setOnAction(ev -> {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Select ROM (bin/rom)");
-            File file = chooser.showOpenDialog(primaryStage);
-            if (file != null) {
-                try {
-                    Cartridge cart = new Cartridge(file.getAbsolutePath());
-                    Memory memory = new Memory(cart);
-                    emulator = new Emulator(memory, gc);
-                    info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    info.setText("Failed to load ROM: " + ex.getMessage());
-                }
-            }
-        });
+		Scene scene = new Scene(root, 640, 480, Color.BLACK);
+		primaryStage.setScene(scene);
+		primaryStage.show();
+		
+		// --- Tenta carregar última ROM automaticamente ---
+		String lastPath = prefs.get("lastRomPath", null);
+		if (lastPath != null) {
+			File lastFile = new File(lastPath);
+			if (lastFile.exists()) {
+				loadROM(lastFile, gc, info);
+			}
+		}
 
-        startBtn.setOnAction(ev -> {
-            if (emulator != null) emulator.start();
-        });
+		loadBtn.setOnAction(ev -> {
+			FileChooser chooser = new FileChooser();
+			chooser.setTitle("Select ROM (bin/rom)");
+			File file = chooser.showOpenDialog(primaryStage);
+			if (file != null) {
+				loadROM(file, gc, info);
+				// Salva o caminho nas preferências
+				prefs.put("lastRomPath", file.getAbsolutePath());
+			}
+		});
 
-        stopBtn.setOnAction(ev -> {
-            if (emulator != null) emulator.stop();
-        });
+		startBtn.setOnAction(ev -> {
+			if (emulator != null)
+				emulator.start();
+		});
 
-        new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                gc.setFill(Color.BLACK);
-                gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-                if (emulator != null) emulator.drawFrame();
-            }
-        }.start();
-    }
+		stopBtn.setOnAction(ev -> {
+			if (emulator != null)
+				emulator.stop();
+		});
+
+		new AnimationTimer() {
+			@Override
+			public void handle(long now) {
+				gc.setFill(Color.BLACK);
+				gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+				if (emulator != null)
+					emulator.drawFrame();
+			}
+		}.start();
+	}
+
+	// Método utilitário para carregar ROM
+	private void loadROM(File file, GraphicsContext gc, Label info) {
+		try {
+			Cartridge cart = new Cartridge(file.getAbsolutePath());
+			Memory memory = new Memory(cart);
+			emulator = new Emulator(memory, gc);
+			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			info.setText("Failed to load ROM: " + ex.getMessage());
+		}
+	}
 }

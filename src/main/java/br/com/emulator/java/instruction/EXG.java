@@ -1,13 +1,13 @@
 package br.com.emulator.java.instruction;
 
-import br.com.emulator.java.Gen68;
+import br.com.emulator.java.CPU68000;
 import br.com.emulator.java.GenInstruction;
 
 public class EXG implements GenInstructionHandler {
 
-	final Gen68 cpu;
+	final CPU68000 cpu;
 	
-	public EXG(Gen68 cpu) {
+	public EXG(CPU68000 cpu) {
 		this.cpu = cpu;
 	}
 	

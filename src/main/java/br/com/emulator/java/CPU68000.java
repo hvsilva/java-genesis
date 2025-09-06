@@ -1,21 +1,22 @@
 package br.com.emulator.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import br.com.emulator.java.addressing.AddressingMode;
 import br.com.emulator.java.instruction.Operation;
 
-public class Gen68 {
+public class CPU68000 {
 
-	// D0-D7
-	private long[] D = new long[8];
-	// A0-A7 (A7 = USP = User Stack Pointer o SSP)
-	private long[] A = new long[8];
+	private long[] D = new long[8]; // D0-D7
 
-	public long PC; // Program Counter
+	private long[] A = new long[8]; // A0-A7 (A7 = USP = User Stack Pointer o SSP)
 
-	// Supervisor SP
-	public long SSP;
-	// User SP
-	public long USP;
+	public long PC; // Program Counter	
+	
+	public long SSP; // Supervisor SP	
+
+	public long USP; // User SP
 
 	// http://tict.ticalc.org/docs/68kguide.txt
 	// Status Register o condition code register
@@ -67,9 +68,9 @@ public class Gen68 {
 
 	public boolean stop = false;
 
-	public GenBus bus;
+	public GenEmulator bus;
 
-	Gen68(GenBus bus) {
+	CPU68000(GenEmulator bus) {
 		this.bus = bus;
 	}
 
@@ -78,14 +79,14 @@ public class Gen68 {
 	GenInstruction[] instructions = new GenInstruction[0x10000];
 	AddressingMode addressingModes[];
 
+	
 	StringBuilder sb = new StringBuilder();
 	public boolean print;
 
 	public int runInstruction() {
 		long opcode = bus.read(PC, Size.WORD);
-
-		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");
-				
+		
+		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");				
 		for (int j = 0; j < 8; j++) {
 			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
 		}
@@ -101,8 +102,6 @@ public class Gen68 {
 		sb.setLength(0);
 
 		cycles = 0;
-
-//		print = true;
 
 		if (bus.vdp.vram[0xb880] == 0xFC) {
 			System.out.println();
@@ -121,15 +120,23 @@ public class Gen68 {
 //		}
 
 		if (PC == 0x3da) {
-//			print = true;
 		}
 
+	    // Executa instrução
 		GenInstruction instruction = getInstruction((int) opcode);
 		instruction.run((int) opcode);
 
 		PC += 2;
 
 		return 0;
+	}
+	
+	private GenInstruction getInstruction(int opcode) {
+		GenInstruction instr = instructions[opcode];
+		if (instr == null) {
+			System.out.println("PC: " + Integer.toHexString((int) PC) + " - INSTR: " + Integer.toHexString(opcode));
+		}
+		return instr;
 	}
 
 	private void printMemory() {
@@ -146,14 +153,6 @@ public class Gen68 {
 					+ Integer.toHexString(bus.vdp.cram[i + 1]) + Integer.toHexString(bus.vdp.cram[i + 2])
 					+ Integer.toHexString(bus.vdp.cram[i + 3]));
 		}
-	}
-
-	private GenInstruction getInstruction(int opcode) {
-		GenInstruction instr = instructions[opcode];
-		if (instr == null) {
-			System.out.println("PC: " + Integer.toHexString((int) PC) + " - INSTR: " + Integer.toHexString(opcode));
-		}
-		return instr;
 	}
 
 	public void setAByte(int register, long data) {

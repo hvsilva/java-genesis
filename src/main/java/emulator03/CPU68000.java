@@ -1,8 +1,7 @@
 package emulator03;
 
 public class CPU68000 {
-
-	private int[] registers = new int[16]; // D0-D7 (0-7), A0-A7 (8-15)
+	private int[] registers = new int[16];  // Registradores: D0-D7 = 0-7, A0-A7 = 8-15
 	private int pc; // Program Counter
 	private Memory memory;
 	private VDP vdp;
@@ -39,7 +38,7 @@ public class CPU68000 {
 		int opcode = memory.readWord(pc);
 		pc += 2;
 		decodeAndExecute(opcode);
-		dumpState(opcode);
+		dumpStateDebug(opcode);
 	}
 
 	private void decodeAndExecute(int opcode) {
@@ -71,6 +70,16 @@ public class CPU68000 {
 		default:
 			System.out.printf("Opcode não implementado: %04X%n", opcode);
 		}
+	}
+	
+
+	/** Debug: dump do estado da CPU */
+	private void dumpStateDebug(int opcode) {
+		System.out.printf("PC=%04X  OPCODE=%04X | ", pc, opcode);
+		for (int i = 0; i < 8; i++) {
+			System.out.printf("D%d=%04X ", i, registers[i]);
+		}
+		System.out.printf("| Flags [Z=%b N=%b C=%b V=%b]%n", flagZ, flagN, flagC, flagV);
 	}
 
 	/** MOVE #imediato, Dx */
@@ -178,15 +187,6 @@ public class CPU68000 {
 	private void updateFlags(int result) {
 		flagZ = (result & 0xFFFF) == 0;
 		flagN = (result & 0x8000) != 0;
-	}
-
-	/** Debug: dump do estado da CPU */
-	private void dumpState(int opcode) {
-		System.out.printf("PC=%04X  OPCODE=%04X | ", pc, opcode);
-		for (int i = 0; i < 8; i++) {
-			System.out.printf("D%d=%04X ", i, registers[i]);
-		}
-		System.out.printf("| Flags [Z=%b N=%b C=%b V=%b]%n", flagZ, flagN, flagC, flagV);
 	}
 
 	// Getters

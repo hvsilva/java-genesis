@@ -147,9 +147,9 @@ public class GenVdp {
 
 	int[][][] colorsCache = new int[8][8][8];
 
-	GenBus bus;
+	GenEmulator bus;
 
-	public GenVdp(GenBus bus) {
+	public GenVdp(GenEmulator bus) {
 		this.bus = bus;
 
 		initColorsCache();
@@ -326,13 +326,13 @@ public class GenVdp {
 			}
 
 			evram = ((data >> 7) & 1) == 1;
-			disp = ((data >> 6) & 1) == 1;
-			ie0 = ((data >> 5) & 1) == 1;
-			m1 = ((data >> 4) & 1) == 1;
-			m3 = ((data >> 3) & 1) == 1;
-			m5 = ((data >> 2) & 1) == 1;
-			sz = ((data >> 1) & 1) == 1;
-			mag = ((data >> 0) & 1) == 1;
+			disp  = ((data >> 6) & 1) == 1;
+			ie0   = ((data >> 5) & 1) == 1;
+			m1    = ((data >> 4) & 1) == 1;
+			m3    = ((data >> 3) & 1) == 1;
+			m5    = ((data >> 2) & 1) == 1;
+			sz    = ((data >> 1) & 1) == 1;
+			mag   = ((data >> 0) & 1) == 1;
 
 		} else if (reg == 0x0F) {
 			autoIncrementData = (int) (data & 0xFF);
@@ -478,8 +478,7 @@ public class GenVdp {
 
 					return;
 				} else {
-					System.out
-							.println("M1 should be 1 in the DMA transfer. otherwise we can't guarantee the operation.");
+					System.out.println("M1 should be 1 in the DMA transfer. otherwise we can't guarantee the operation.");							
 				}
 
 			} else if (vramMode == VramMode.vramWrite) {
@@ -967,7 +966,7 @@ public class GenVdp {
 
 				bus.emu.renderScreen();
 			}
-		} else if (line < 0xE0 && ((registers[1] & 0x40) == 0x40)) { // solo en 0 si el display esta prendido (apagado
+		} else if (line < 0xE0 && ((registers[1] & 0x40) == 0x40)) {    // solo en 0 si el display esta prendido (apagado
 																		// siempre esta en 1)
 			vb = 0;
 		}

@@ -1,14 +1,14 @@
 package br.com.emulator.java.instruction;
 
-import br.com.emulator.java.Gen68;
+import br.com.emulator.java.CPU68000;
 import br.com.emulator.java.GenInstruction;
 import br.com.emulator.java.Size;
 
 public class BCLR implements GenInstructionHandler {
 
-	final Gen68 cpu;
+	final CPU68000 cpu;
 	
-	public BCLR(Gen68 cpu) {
+	public BCLR(CPU68000 cpu) {
 		this.cpu = cpu;
 	}
 	
@@ -95,7 +95,7 @@ public class BCLR implements GenInstructionHandler {
 		generateImmediate(cpu);
 	}
 	
-	private void generateRegister(Gen68 cpu) {
+	private void generateRegister(CPU68000 cpu) {
 		int base = 0x0180;
 		GenInstruction insByte = new GenInstruction() {
 			@Override
@@ -132,7 +132,7 @@ public class BCLR implements GenInstructionHandler {
 		}
 	}
 
-	private void generateImmediate(Gen68 cpu) {
+	private void generateImmediate(CPU68000 cpu) {
 		int base = 0x0880;
 		GenInstruction insByte = new GenInstruction() {
 			@Override
