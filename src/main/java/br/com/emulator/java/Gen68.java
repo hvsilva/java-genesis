@@ -4,27 +4,31 @@ import br.com.emulator.java.addressing.AddressingMode;
 import br.com.emulator.java.instruction.Operation;
 
 public class Gen68 {
-	
-	//	D0-D7
+
+	// D0-D7
 	private long[] D = new long[8];
-	//	A0-A7	(A7 = USP = User Stack Pointer o SSP)
+	// A0-A7 (A7 = USP = User Stack Pointer o SSP)
 	private long[] A = new long[8];
-	
+
 	public long PC; // Program Counter
-	
-	//	Supervisor SP
+
+	// Supervisor SP
 	public long SSP;
-	//	User SP
+	// User SP
 	public long USP;
-	
-	//	http://tict.ticalc.org/docs/68kguide.txt
-	//	Status Register o condition code register
-	//	XExtend: Set to the value of the C-bit for arithmetic operations; otherwise not affected or set to a specified result.
-	//	NNegative: Set if the most significant bit of the result is set; otherwise clear.
-	//	ZZero: Set if the result equals zero; otherwise clear.
-	//	VOverflow: Set if an arithmetic overflow occurs implying that the result cannot be represented in the operand size; otherwise clear. 
-	//	CCarry: Set if a carry out of the most significant bit of the operand occurs for an addition, or if a borrow occurs in a subtraction; otherwise clear. 
-	
+
+	// http://tict.ticalc.org/docs/68kguide.txt
+	// Status Register o condition code register
+	// XExtend: Set to the value of the C-bit for arithmetic operations; otherwise
+	// not affected or set to a specified result.
+	// NNegative: Set if the most significant bit of the result is set; otherwise
+	// clear.
+	// ZZero: Set if the result equals zero; otherwise clear.
+	// VOverflow: Set if an arithmetic overflow occurs implying that the result
+	// cannot be represented in the operand size; otherwise clear.
+	// CCarry: Set if a carry out of the most significant bit of the operand occurs
+	// for an addition, or if a borrow occurs in a subtraction; otherwise clear.
+
 //	 Bit 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
 //	    -------------------------------------------------
 //	    | T| -| S| -| -| I2,1,0 | -| -| -| X| N| Z| V| C|   - the status register
@@ -60,28 +64,28 @@ public class Gen68 {
 //level 6 |  1    1    0 |
 //level 7 |  1    1    1 |  ---------> highest priority
 	public int SR;
-	
+
 	public boolean stop = false;
-	
+
 	public GenBus bus;
-	
+
 	Gen68(GenBus bus) {
 		this.bus = bus;
 	}
-	
+
 	int cycles = 0;
-	
+
 	GenInstruction[] instructions = new GenInstruction[0x10000];
 	AddressingMode addressingModes[];
-	
+
 	StringBuilder sb = new StringBuilder();
 	public boolean print;
 
 	public int runInstruction() {
 		long opcode = bus.read(PC, Size.WORD);
-		
-		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: "
-				+ pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");
+
+		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");
+				
 		for (int j = 0; j < 8; j++) {
 			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
 		}
@@ -93,41 +97,41 @@ public class Gen68 {
 		if (print) {
 			System.out.println(sb.toString());
 		}
-		
+
 		sb.setLength(0);
-		
+
 		cycles = 0;
-		
+
 //		print = true;
-		
-		if (bus.vdp.vram[0xb880] == 0xFC){
+
+		if (bus.vdp.vram[0xb880] == 0xFC) {
 			System.out.println();
 		}
 
 		if (bus.memory.ram[0xc2bb] != 0) {
 //			System.out.println();
 		}
-		
+
 		if (bus.vdp.cram[0x7b] == 0xa3) {
-			
+
 		}
-		
+
 //		if ((SSP & 0xFFFF_FFFFL) != getA(7) && (SR & 0x2000) == 0x2000) {
 //			System.out.println();
 //		}
-		
+
 		if (PC == 0x3da) {
 //			print = true;
 		}
-		
+
 		GenInstruction instruction = getInstruction((int) opcode);
 		instruction.run((int) opcode);
-		
+
 		PC += 2;
-		
+
 		return 0;
 	}
-	
+
 	private void printMemory() {
 		int offset = 0xF400;
 		for (int i = 0xF400; i < 0xF410; i++) {
@@ -135,16 +139,15 @@ public class Gen68 {
 			offset += 2;
 		}
 	}
-	
+
 	private void printCRAM() {
-    	for (int i = 0; i < bus.vdp.cram.length; i += 4) {
-			System.out.println(Integer.toHexString(i) + ": "
-					+ Integer.toHexString(bus.vdp.cram[i]) + Integer.toHexString(bus.vdp.cram[i + 1])
-					+ Integer.toHexString(bus.vdp.cram[i + 2]) + Integer.toHexString(bus.vdp.cram[i + 3])
-					);
+		for (int i = 0; i < bus.vdp.cram.length; i += 4) {
+			System.out.println(Integer.toHexString(i) + ": " + Integer.toHexString(bus.vdp.cram[i])
+					+ Integer.toHexString(bus.vdp.cram[i + 1]) + Integer.toHexString(bus.vdp.cram[i + 2])
+					+ Integer.toHexString(bus.vdp.cram[i + 3]));
 		}
-    }
-	
+	}
+
 	private GenInstruction getInstruction(int opcode) {
 		GenInstruction instr = instructions[opcode];
 		if (instr == null) {
@@ -156,7 +159,7 @@ public class Gen68 {
 	public void setAByte(int register, long data) {
 		long reg = A[register];
 		A[register] = ((reg & 0xFFFF_FF00) | (data & 0xFF));
-		
+
 		if (register == 7) {
 			if ((SR & 0x2000) == 0x2000) {
 				SSP = (int) A[register];
@@ -165,11 +168,11 @@ public class Gen68 {
 			}
 		}
 	}
-	
+
 	public void setAWord(int register, long data) {
 		long reg = A[register];
 		A[register] = ((reg & 0xFFFF_0000) | (data & 0xFFFF));
-		
+
 		if (register == 7) {
 			if ((SR & 0x2000) == 0x2000) {
 				SSP = (int) A[register];
@@ -178,10 +181,10 @@ public class Gen68 {
 			}
 		}
 	}
-	
+
 	public void setALong(int register, long data) {
 		A[register] = data & 0xFFFF_FFFFL;
-		
+
 		if (register == 7) {
 			if ((SR & 0x2000) == 0x2000) {
 				SSP = getALong(register);
@@ -190,41 +193,41 @@ public class Gen68 {
 			}
 		}
 	}
-	
+
 	public void setDByte(int register, long data) {
 		long reg = D[register];
 		D[register] = ((reg & 0xFFFF_FF00) | (data & 0xFF));
 	}
-	
+
 	public void setDWord(int register, long data) {
 		long reg = D[register];
 		D[register] = ((reg & 0xFFFF_0000) | (data & 0xFFFF));
 	}
-	
+
 	public void setDLong(int register, long data) {
 		D[register] = data & 0xFFFF_FFFFL;
 	}
-	
+
 	public long getAByte(int register) {
 		return A[register] & 0xFF;
 	}
-	
+
 	public long getAWord(int register) {
 		return A[register] & 0xFFFF;
 	}
-	
+
 	public long getALong(int register) {
 		return A[register] & 0xFFFF_FFFFL;
 	}
-	
+
 	public long getDByte(int register) {
 		return D[register] & 0xFF;
 	}
-	
+
 	public long getDWord(int register) {
 		return D[register] & 0xFFFF;
 	}
-	
+
 	public long getDLong(int register) {
 		return D[register] & 0xFFFF_FFFFL;
 	}
@@ -232,93 +235,93 @@ public class Gen68 {
 	public void setX() {
 		SR = bitSet(SR, 4);
 	}
-	
+
 	public void clearX() {
 		SR = bitReset(SR, 4);
 	}
-	
+
 	public boolean isX() {
 		return bitTest(SR, 4);
 	}
-	
+
 	public void setN() {
 		SR = bitSet(SR, 3);
 	}
-	
+
 	public void clearN() {
 		SR = bitReset(SR, 3);
 	}
-	
+
 	public boolean isN() {
 		return bitTest(SR, 3);
 	}
-	
+
 	public void setZ() {
 		SR = bitSet(SR, 2);
 	}
-	
+
 	public void clearZ() {
 		SR = bitReset(SR, 2);
 	}
-	
+
 	public boolean isZ() {
 		return bitTest(SR, 2);
 	}
-	
+
 	public void setV() {
 		SR = bitSet(SR, 1);
 	}
-	
+
 	public void clearV() {
 		SR = bitReset(SR, 1);
 	}
-	
+
 	public boolean isV() {
 		return bitTest(SR, 1);
 	}
-	
+
 	public void setC() {
 		SR = bitSet(SR, 0);
 	}
-	
+
 	public void clearC() {
 		SR = bitReset(SR, 0);
 	}
-	
+
 	public boolean isC() {
 		return bitTest(SR, 0);
 	}
 
 	public final String pad(int reg) {
-        String s = Integer.toHexString(reg).toUpperCase();
-        if (s.length() == 1) {
-            s = "0" + s;
-        }
-        return s;
-    }
+		String s = Integer.toHexString(reg).toUpperCase();
+		if (s.length() == 1) {
+			s = "0" + s;
+		}
+		return s;
+	}
 
-    public final String pad4(int reg) {
-        String s = Integer.toHexString(reg).toUpperCase();
-        while (s.length() < 4) {
-            s = "0" + s;
-        }
-        return s;
-    }
+	public final String pad4(int reg) {
+		String s = Integer.toHexString(reg).toUpperCase();
+		while (s.length() < 4) {
+			s = "0" + s;
+		}
+		return s;
+	}
 
-    public void reset() {
-    	SSP = 0;
-    	PC = 0;
-    }
-    
+	public void reset() {
+		SSP = 0;
+		PC = 0;
+	}
+
 	public void initialize() {
-		//	the processor fetches an initial stack pointer from locations $000000-$000003
+		// the processor fetches an initial stack pointer from locations $000000-$000003
 		SSP = bus.read(0, Size.LONG);
-		
+
 		USP = 0xFFFF_FFFFL;
 
-		//	initial PC specified by locations $000004-$000007
+		// initial PC specified by locations $000004-$000007
 		PC = bus.read(4, Size.LONG);
-		
+
 		for (int i = 0; i < A.length; i++) {
 			A[i] = 0xFFFF_FFFFL;
 			D[i] = 0xFFFF_FFFFL;
@@ -326,22 +329,22 @@ public class Gen68 {
 		A[7] = SSP;
 		SR = 0x7FFF;
 	}
-	
+
 	public Operation resolveAddressingMode(Size size, int mode, int register) {
 		return resolveAddressingMode(PC + 2, size, mode, register);
 	}
-	
+
 	public Operation resolveAddressingMode(long offset, Size size, int mode, int register) {
 		AddressingMode addressing = getAddressingMode(mode, register);
 		Operation oper = new Operation();
 		oper.setRegister(register);
 		oper.setAddressingMode(addressing);
-		
+
 		addressing.calculateAddress(oper, size);
-		
+
 		return oper;
 	}
-	
+
 	private AddressingMode getAddressingMode(int mode, int register) {
 		AddressingMode addr;
 		if (mode < 7) {
@@ -357,9 +360,9 @@ public class Gen68 {
 
 	public void writeKnownAddressingMode(Operation o, long data, Size size) {
 		AddressingMode addressing = o.getAddressingMode();
-		
+
 		o.setData(data);
-		
+
 		if (Size.BYTE == size) {
 			addressing.setByte(o);
 		} else if (Size.WORD == size) {
@@ -368,7 +371,7 @@ public class Gen68 {
 			addressing.setLong(o);
 		}
 	}
-		
+
 //	public void writeAddressingMode(Size size, long offset, long data, int mode, int register) {
 //		long addr;
 //		
@@ -569,25 +572,25 @@ public class Gen68 {
 //			throw new RuntimeException("Addressing no soportado: " + mode);
 //		}
 //	}
-	
+
 	public boolean bitTest(long address, int position) {
-        return ((address & (1 << position)) != 0);
-    }
+		return ((address & (1 << position)) != 0);
+	}
 
-    public int bitSet(int address, int position) {
-        return address | (1 << position);
-    }
+	public int bitSet(int address, int position) {
+		return address | (1 << position);
+	}
 
-    public int bitReset(int address, int position) {
-        return address & ~(1 << position);
-    }
-    
-    int getInterruptMask() {
-    	return (SR >> 8) & 0x7;
-    }
+	public int bitReset(int address, int position) {
+		return address & ~(1 << position);
+	}
 
-    int totalInstructions = 0;
-    
+	int getInterruptMask() {
+		return (SR >> 8) & 0x7;
+	}
+
+	int totalInstructions = 0;
+
 	public void addInstruction(int opcode, GenInstruction ins) {
 		GenInstruction instr = instructions[opcode];
 		if (instr != null) {
@@ -608,7 +611,7 @@ public class Gen68 {
 //0111 EQ EQual            Z = 1      1111 LE Less or Equal    Z + (N (+) V) = 1
 	public boolean evaluateBranchCondition(int cc, Size size) {
 		boolean taken;
-		
+
 		switch (cc) {
 		case 0b0000:
 			taken = true;
@@ -623,9 +626,9 @@ public class Gen68 {
 			} else {
 				throw new RuntimeException("");
 			}
-			
+
 			taken = true;
-			
+
 			if ((SR & 0x2000) == 0x2000) {
 				SSP--;
 				bus.write(SSP, oldPC & 0xFF, Size.BYTE);
@@ -635,7 +638,7 @@ public class Gen68 {
 				bus.write(SSP, (oldPC >> 16) & 0xFF, Size.BYTE);
 				SSP--;
 				bus.write(SSP, (oldPC >> 24), Size.BYTE);
-				
+
 				setALong(7, SSP);
 			} else {
 				USP--;
@@ -646,15 +649,15 @@ public class Gen68 {
 				bus.write(USP, (oldPC >> 16) & 0xFF, Size.BYTE);
 				USP--;
 				bus.write(USP, (oldPC >> 24), Size.BYTE);
-				
+
 				setALong(7, USP);
 			}
-			
+
 			break;
-		case 0b0010:	//	C + Z = 0		the C and Z flags are both clear
+		case 0b0010: // C + Z = 0 the C and Z flags are both clear
 			taken = !isC() && !isZ();
 			break;
-		case 0b0011:	//	C + Z = 1		the C or Z flag is set
+		case 0b0011: // C + Z = 1 the C or Z flag is set
 			taken = isC() || isZ();
 			break;
 		case 0b0100:
@@ -681,23 +684,27 @@ public class Gen68 {
 		case 0b1011:
 			taken = isN();
 			break;
-		case 0b1100:	//	BGE � Branch on Greater than or Equal	1) The N and V flags are both clear 2) The N and V flags are both set
+		case 0b1100: // BGE � Branch on Greater than or Equal 1) The N and V flags are both clear 2)
+						// The N and V flags are both set
 			taken = (!isN() && !isV()) || (isN() && isV());
 			break;
-		case 0b1101:	//	BLT � Branch on Lower Than	N (+) V = 1		1) The N flag is clear, but the V flag is set 2) The N flag is set, but the V flag is clear
+		case 0b1101: // BLT � Branch on Lower Than N (+) V = 1 1) The N flag is clear, but the V flag
+						// is set 2) The N flag is set, but the V flag is clear
 			taken = (!isN() && isV()) || (isN() && !isV());
 			break;
-		case 0b1110:	//	BGT Greater Than     Z + (N (+) V) = 0		1) The Z, N and V flags are all clear 2) The Z flag is clear, but the N and V flags are both set
+		case 0b1110: // BGT Greater Than Z + (N (+) V) = 0 1) The Z, N and V flags are all clear 2)
+						// The Z flag is clear, but the N and V flags are both set
 			taken = (!isZ() && !isN() && !isV()) || (!isZ() && isN() && isV());
 			break;
-		case 0b1111:	//	BLE Less or Equal    Z + (N (+) V) = 1		1) The Z flag is clear 2) The N flag is clear, but the V flag is set 3) The N flag is set, but the V flag is clear
+		case 0b1111: // BLE Less or Equal Z + (N (+) V) = 1 1) The Z flag is clear 2) The N flag is
+						// clear, but the V flag is set 3) The N flag is set, but the V flag is clear
 			taken = isZ() || (!isZ() && !isN() && isV()) || (!isZ() && isN() && !isV());
 			break;
-			default:
-				throw new RuntimeException("not impl " + cc);
+		default:
+			throw new RuntimeException("not impl " + cc);
 		}
-		
+
 		return taken;
 	}
-	
+
 }

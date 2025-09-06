@@ -151,6 +151,8 @@ public class Genefusto {
 	
 	// Preferences para armazenar caminho da última ROM
 	private Preferences prefs = Preferences.userNodeForPackage(Genefusto.class);
+	
+	final JLabel label = new JLabel(new ImageIcon(img));
 
 	public static void main(String[] args) throws Exception {
 		// Create the frame on the event dispatching thread
@@ -162,7 +164,7 @@ public class Genefusto {
 		});
 	}
 
-	final JLabel label = new JLabel(new ImageIcon(img));
+
 
 	Genefusto() {
 		this(false);
@@ -257,7 +259,7 @@ public class Genefusto {
 		new TST(cpu).generate();
 		new UNLK(cpu).generate();
 
-		System.out.println(cpu.totalInstructions);
+		System.out.println("[CPU.TOTALINSTRUCTIONS] :  " + cpu.totalInstructions);
 
 		cpu.addressingModes = new AddressingMode[] { new DataRegisterDirect(cpu), new AddressRegisterDirect(cpu),
 				new AddressRegisterIndirect(cpu), new AddressRegisterIndirectPostIncrement(cpu),
@@ -441,6 +443,11 @@ public class Genefusto {
 			jframe.pack();
 		}
 	}
+	
+
+//  String basePath = "C:\\Users\\Zotac\\workspace\\raul\\src\\gen\\roms\\";
+	String basePath = "D:\\PROJETOS_EMULADOR\\Gensis_ROMS\\";
+
 
 	private void openRomDialog() {
 		final JFileChooser fileChooser = new JFileChooser();
@@ -475,9 +482,6 @@ public class Genefusto {
 			currentGameThread.start();
 		}
 	}
-
-//    String basePath = "C:\\Users\\Zotac\\workspace\\raul\\src\\gen\\roms\\";
-	String basePath = "D:\\PROJETOS_EMULADOR\\Gensis_ROMS\\";
 
 	class MyRunnable implements Runnable {
 		File file;
