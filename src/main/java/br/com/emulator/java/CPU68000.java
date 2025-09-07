@@ -67,6 +67,8 @@ public class CPU68000 {
 	public int SR;
 
 	public boolean stop = false;
+	
+	public boolean print;
 
 	public GenEmulator bus;
 
@@ -81,12 +83,33 @@ public class CPU68000 {
 
 	
 	StringBuilder sb = new StringBuilder();
-	public boolean print;
 
-	public int runInstruction() {
+	private List<Breakpoint> breakpoints = new ArrayList<>();
+
+	public void addBreakpointPC(int pc) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.PC, pc, -1));
+	}
+
+	public void addBreakpointVRAM(int addr, int value) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.VRAM, addr, value));
+	}
+
+	public void addBreakpointRAM(int addr, int value) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.RAM, addr, value));
+	}
+
+	public void addBreakpointCRAM(int addr, int value) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.CRAM, addr, value));
+	}
+	
+
+	public int runInstruction(boolean print) {
+	    // Busca o opcode da memória (bus) na posição do PC (Program Counter)
 		long opcode = bus.read(PC, Size.WORD);
 		
+		// Monta informações de debug sobre o estado atual da CPU
 		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");				
+		
 		for (int j = 0; j < 8; j++) {
 			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
 		}
@@ -96,37 +119,67 @@ public class CPU68000 {
 		}
 		sb.append("\r\n");
 		if (print) {
-			System.out.println(sb.toString());
+			System.out.println(sb.toString()); // Imprime estado se solicitado
 		}
 
-		sb.setLength(0);
+		sb.setLength(0); // Limpa buffer de debug
 
-		cycles = 0;
+		cycles = 0; // Zera o contador de ciclos (para controle de timing)
 
-		if (bus.vdp.vram[0xb880] == 0xFC) {
-			System.out.println();
-		}
-
-		if (bus.memory.ram[0xc2bb] != 0) {
-//			System.out.println();
-		}
-
-		if (bus.vdp.cram[0x7b] == 0xa3) {
-
-		}
-
-//		if ((SSP & 0xFFFF_FFFFL) != getA(7) && (SR & 0x2000) == 0x2000) {
+		// Debugs para pontos específicos na memória RAM/VRAM/CRAM
+//		if (bus.vdp.vram[0xb880] == 0xFC) {
 //			System.out.println();
 //		}
+//
+//		if (bus.memory.ram[0xc2bb] != 0) {
+////			System.out.println();
+//		}
+//
+//		if (bus.vdp.cram[0x7b] == 0xa3) {
+//
+//		}
+//
+////		if ((SSP & 0xFFFF_FFFFL) != getA(7) && (SR & 0x2000) == 0x2000) {
+////			System.out.println();
+////		}
+//
+//		if (PC == 0x3da) {
+//		}
+		
+	    for (Breakpoint bp : breakpoints) {
+	        switch (bp.type) {
+	            case PC:
+	                if ((int)PC == bp.address) {
+	                    System.out.println("Breakpoint atingido: PC=" + Integer.toHexString((int)PC));
+	                    print = true;
+	                }
+	                break;
+	            case VRAM:
+	                if (bus.vdp.vram[bp.address] == bp.value) {
+	                    System.out.println("Breakpoint VRAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
+	                    print = true;
+	                }
+	                break;
+	            case RAM:
+	                if (bus.memory.ram[bp.address] == bp.value) {
+	                    System.out.println("Breakpoint RAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
+	                    print = true;
+	                }
+	                break;
+	            case CRAM:
+	                if (bus.vdp.cram[bp.address] == bp.value) {
+	                    System.out.println("Breakpoint CRAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
+	                    print = true;
+	                }
+	                break;
+	        }
+	    }
 
-		if (PC == 0x3da) {
-		}
-
-	    // Executa instrução
+		 // Busca e executa a instrução decodificada
 		GenInstruction instruction = getInstruction((int) opcode);
 		instruction.run((int) opcode);
 
-		PC += 2;
+		PC += 2; // Avança o program counter (normalmente 2 bytes para 68000)
 
 		return 0;
 	}

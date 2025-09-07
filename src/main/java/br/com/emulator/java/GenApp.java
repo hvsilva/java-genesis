@@ -118,7 +118,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 
 //	MEMORY MAP:	https://en.wikibooks.org/wiki/Genesis_Programming
-public class Genefusto {
+public class GenApp {
 
 	GenMemory memory;
 	GenVdp vdp;
@@ -150,7 +150,7 @@ public class Genefusto {
 	static BufferedImage img = new BufferedImage(320, 256, BufferedImage.TYPE_INT_RGB);
 	
 	// Preferences para armazenar caminho da última ROM
-	private Preferences prefs = Preferences.userNodeForPackage(Genefusto.class);
+	private Preferences prefs = Preferences.userNodeForPackage(GenApp.class);
 	
 	final JLabel label = new JLabel(new ImageIcon(img));
 
@@ -159,18 +159,16 @@ public class Genefusto {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				new Genefusto();
+				new GenApp();
 			}
 		});
 	}
 
-
-
-	Genefusto() {
+	GenApp() {
 		this(false);
 	}
 
-	Genefusto(boolean debug) {
+	GenApp(boolean debug) {
 		bus = new GenEmulator(this, null, null, null, null, null);
 		memory = new GenMemory();
 		vdp = new GenVdp(bus);
@@ -539,30 +537,32 @@ public class Genefusto {
 			loop();
 		}
 	}
+	
+	private int currentMultiplier = 1;
+	public boolean runZ80 = false;
 
 	void loop() {
 		try {
 			for (;;) {
-				if (runZ80) { // TODO hacer que use la velocidad correcta y sea un thread distinto
+				if (runZ80) { // TODO fazer com que você use a velocidade correta e tenha um fio distinto
 					int opcode = z80.readMemory(z80.PC);
 					z80.PC = (z80.PC + 1) & 0xFFFF;
 					z80.executeInstruction(opcode);
 				}
+				// Execução da CPU 68000 (principal)
 				if (!cpu.stop) {
-					cpu.runInstruction();
+					cpu.runInstruction(false);// Executa próxima instrução da CPU principal
 				}
+				 // Checagem de interrupções do barramento
 				bus.checkInterrupts();
-				vdp.run(13);
-				vdp.dmaFill();
-				vdp.dmaFill();
+				vdp.run(13);    // Roda 13 ciclos do VDP (ajustável para sincronismo)
+				vdp.dmaFill();  // DMA do VDP (preenchimento de memória de vídeo)
+				vdp.dmaFill();  // DMA do VDP (executado duas vezes por ciclo)
 			}
 		} catch (RuntimeException e) {
 			throw e;
 		}
 	}
-
-	private int currentMultiplier = 1;
-	public boolean runZ80 = false;
 
 	void renderScreen() {
 		int m = currentMultiplier;

@@ -1,5 +1,8 @@
 package emulator02;
 
+import java.io.File;
+import java.util.prefs.Preferences;
+
 // JavaFX UI
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -13,19 +16,13 @@ import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import java.io.File;
-import java.util.prefs.Preferences;
-
-import emulator03.Cartridge;
-import emulator03.Emulator;
-import emulator03.MainApp;
-import emulator03.Memory;
 
 public class EmulatorApp extends Application {
+	
 	private Emulator emulator;
 
 	// Preferences para armazenar caminho da última ROM
-	private Preferences prefs = Preferences.userNodeForPackage(MainApp.class);
+	private Preferences prefs = Preferences.userNodeForPackage(EmulatorApp.class);
 
 	public static void main(String[] args) {
 		launch(args);

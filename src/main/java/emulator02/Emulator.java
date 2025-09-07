@@ -5,57 +5,66 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.paint.Color;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import emulator02.CPU68000;
+import emulator02.Memory;
+import emulator02.VDP;
+
 public class Emulator {
 
-	private CPU68000 cpu;
-	private Memory memory;
-	private VDP vdp;
-	private AtomicBoolean running = new AtomicBoolean(false);
-	private Thread emuThread;
-	private GraphicsContext gc;
+	private final CPU68000 cpu;
+    private final VDP vdp;
+    private final Memory memory;
 
-	public Emulator(Memory memory, GraphicsContext gc) {
-		this.memory = memory;
-		this.gc = gc;
-		this.cpu = new CPU68000(memory);
-		this.vdp = new VDP();
-	}
+    private final GraphicsContext gc; // vem do EmulatorApp
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private Thread emuThread;
 
-	public void start() {
-		running.set(true);
-		emuThread = new Thread(() -> {
-			while (running.get()) {
-				cpu.step(); // executa instrução
-				vdp.step(); // atualiza framebuffer
-				try {
-					Thread.sleep(16);
-				} catch (InterruptedException ignored) {
-				}
-			}
-		}, "EmuThread");
-		emuThread.setDaemon(true);
-		emuThread.start();
-	}
+    public Emulator(Memory memory, GraphicsContext gc) {
+        this.memory = memory;
+        this.gc = gc;
+        this.cpu = new CPU68000(memory);
+        this.vdp = new VDP(gc);
+    }
 
-	public void stop() {
-		running.set(false);
-	}
+    /** Inicia emulação em uma thread */
+    public void start() {
+        if (running.get()) return;
+        running.set(true);
 
-	public void drawFrame() {
-		PixelWriter pw = gc.getPixelWriter();
-		int[] fb = vdp.getFrameBuffer();
-		for (int y = 0; y < 224; y++) {
-			for (int x = 0; x < 320; x++) {
-				int rgb = fb[y * 320 + x];
-				int r = (rgb >> 16) & 0xFF;
-				int g = (rgb >> 8) & 0xFF;
-				int b = rgb & 0xFF;
-				pw.setColor(x, y, Color.rgb(r, g, b));
-			}
-		}
-	}
+        emuThread = new Thread(() -> {
+            cpu.reset();
+            while (running.get()) {
+                // executa instrução da CPU
+                int cycles = cpu.runInstruction();
 
-	public CPU68000 getCpu() {
-		return cpu;
-	}
+                // avança o VDP com base nos ciclos
+                vdp.run(cycles);
+
+                // Simulação simplificada ~60fps
+                try {
+                    Thread.sleep(1); // ajustável conforme velocidade
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }, "EmuThread");
+
+        emuThread.setDaemon(true);
+        emuThread.start();
+    }
+
+    /** Para a execução */
+    public void stop() {
+        running.set(false);
+        if (emuThread != null) {
+            try {
+                emuThread.join();
+            } catch (InterruptedException ignored) {
+            }
+        }
+    }
+
+    /** Chamado pelo AnimationTimer do EmulatorApp */
+    public void drawFrame() {
+        vdp.renderScreen();
+    }
 }

@@ -6,7 +6,7 @@ import java.util.Random;
 //https://emu-docs.org/Genesis/gen-hw.txt
 public class GenEmulator {
 
-	Genefusto emu;
+	GenApp emu;
 	GenMemory memory;
 	GenVdp vdp;
 	GenZ80 z80;
@@ -22,7 +22,7 @@ public class GenEmulator {
 
 	int[] banks = new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-	GenEmulator(Genefusto emu, GenMemory memory, GenVdp vdp, GenZ80 z80, GenJoypad joypad, CPU68000 cpu) {
+	GenEmulator(GenApp emu, GenMemory memory, GenVdp vdp, GenZ80 z80, GenJoypad joypad, CPU68000 cpu) {
 		this.emu = emu;
 		this.memory = memory;
 		this.vdp = vdp;
@@ -40,7 +40,7 @@ public class GenEmulator {
 	}
 
 	public long read(long address, Size size) {
-		address = address & 0xFF_FFFF; // el memory map llega hasta ahi
+		address = address & 0xFF_FFFF; // o mapa de memória 
 		long data;
 
 		if (ssf2Mapper && address >= 0x080000 && address <= 0x3FFFFF) {
