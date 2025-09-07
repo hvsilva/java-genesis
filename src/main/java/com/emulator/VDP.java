@@ -55,6 +55,44 @@ public class VDP {
             vblank = false;
         }
     }
+    
+    public int read(long address, Size size) {
+        // Endereço de registrador VDP
+        int reg = (int)((address - 0xC00000) / 2);
+        if (reg >= 0 && reg < registers.length) {
+            int value = registers[reg];
+            switch (size) {
+                case BYTE: return value & 0xFF;
+                case WORD: return value & 0xFFFF;
+                case LONG: return value & 0xFFFF;
+                default: return 0;
+            }
+        } else {
+            System.err.printf("VDP read: endereço inválido %06X\n", address);
+            return 0;
+        }
+    }
+    
+    public void write(long address, long data, Size size) {
+        // Exemplo: VDP registers mapeados em 0xC00000 - 0xC0001F
+        int reg = (int)((address - 0xC00000) / 2); // cada registrador tem 2 bytes
+
+        if (reg >= 0 && reg < registers.length) {
+            switch (size) {
+                case BYTE:
+                    registers[reg] = (int)(data & 0xFF);
+                    break;
+                case WORD:
+                    registers[reg] = (int)(data & 0xFFFF);
+                    break;
+                case LONG:
+                    registers[reg] = (int)(data & 0xFFFF); // geralmente só WORD, mas pode adaptar
+                    break;
+            }
+        } else {
+            System.err.printf("VDP write: endereço inválido %06X\n", address);
+        }
+    }
 
     /**
      * Renderiza uma linha da tela para o framebuffer.

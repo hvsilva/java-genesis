@@ -1,6 +1,9 @@
 package com.emulator;
 
+import com.emulator.addressing.AddressRegisterDirect;
+import com.emulator.addressing.AddressRegisterIndirect;
 import com.emulator.addressing.AddressingMode;
+import com.emulator.addressing.DataRegisterDirect;
 import com.emulator.instruction.ABCD;
 import com.emulator.instruction.Operation;
 
@@ -8,7 +11,7 @@ public class CPU68000 {
 	
 	GenInstruction[] instructions = new GenInstruction[0x10000];
 	AddressingMode addressingModes[];
-    private final Memory memory;   
+	public Memory memory;   
 
 	private long[] D = new long[8]; // D0-D7
 	private long[] A = new long[8]; // A0-A7 (A7 = USP/SSP)	 
@@ -29,7 +32,23 @@ public class CPU68000 {
         this.memory = mem;
         initInstructions();
         reset();
-        initialize();
+        initialize();        
+        
+        this.addressingModes = new AddressingMode[] {
+            new DataRegisterDirect(this),                  // 0
+            new AddressRegisterDirect(this),               // 1
+            new AddressRegisterIndirect(this),             // 2
+//            new AddressRegisterIndirectPostIncrement(this),// 3
+//            new AddressRegisterIndirectPreDecrement(this), // 4
+//            new AddressRegisterWithDisplacement(this),     // 5
+//            new AddressRegisterWithIndex(this),            // 6
+//            new AbsoluteShort(this),                       // 7, reg=0
+//            new AbsoluteLong(this),                        // 7, reg=1
+//            new PCWithDisplacement(this),                  // 7, reg=2
+//            new PCWithIndex(this),                         // 7, reg=3
+//            new ImmediateData(this)                        // 7, reg=4 (normalmente só fonte)
+            // Para reg=5 ou reg=6, pode ser modos reservados ou especiais, adicione se necessário!
+            };
     }
     
     /** Inicializa mapa de instruções */
@@ -78,18 +97,6 @@ public class CPU68000 {
         return cycles;
     }
 
-    /** Reset realista (SP e PC vêm da ROM) */
-//    public void reset() {
-//        int initialSP = memory.readLong(0); // Stack Pointer (supervisor) inicial
-//        int initialPC = memory.readLong(4); // PC inicial
-//        
-//        System.out.println("Initial SP: " + pad4(initialSP) + " - Initial PC: " + pad4(initialPC));
-//        
-//        setSP(initialSP);
-//        setPC(initialPC);
-//    }
-
-
 	/** Estimativa simplificada de ciclos */
 	private int estimateCycles(int opcode) {
 	    if ((opcode & 0xF000) == 0x1000) return 8; // MOVE.B
@@ -106,7 +113,7 @@ public class CPU68000 {
             System.out.printf("D%d=%02X ", i, getDByte(i));
         System.out.println();
         for (int i = 0; i < 8; i++)
-            System.out.printf("A%d=%08X ", i, getALong(i));
+            System.out.printf("A%d=%08X ", i, getAByte(i));
         System.out.printf("SSP=%08X%n", SSP);
         System.out.printf("Flags [X=%b Z=%b N=%b C=%b V=%b]%n", flagX, flagZ, flagN, flagC, flagV);
     }
@@ -137,7 +144,32 @@ public class CPU68000 {
 	public void setDByte(int register, long data) {
 		long reg = D[register];
 		D[register] = ((reg & 0xFFFF_FF00) | (data & 0xFF));
+	}	
+	
+	public long getAByte(int register) {
+		return A[register] & 0xFF;
 	}
+	
+	public void setAByte(int register, long data) {
+		long reg = A[register];
+		A[register] = ((reg & 0xFFFF_FF00) | (data & 0xFF));
+
+		if (register == 7) {
+			if ((SR & 0x2000) == 0x2000) {
+				SSP = (int) A[register];
+			} else {
+				USP = (int) A[register];
+			}
+		}
+	}
+	
+	public void setDLong(int register, long data) {
+		D[register] = data & 0xFFFF_FFFFL;
+	}
+	
+	public long getDLong(int register) {
+		return D[register] & 0xFFFF_FFFFL;
+	}	
 	
 	public long getALong(int register) {
 		return A[register] & 0xFFFF_FFFFL;
@@ -153,6 +185,33 @@ public class CPU68000 {
 			}
 		}
 	}
+	
+	public long getDWord(int register) {
+		return D[register] & 0xFFFF;
+	}
+	
+	public void setDWord(int register, long data) {
+		long reg = D[register];
+		D[register] = ((reg & 0xFFFF_0000) | (data & 0xFFFF));
+	}
+	
+	public long getAWord(int register) {
+		return A[register] & 0xFFFF;
+	}
+	
+	public void setAWord(int register, long data) {
+		long reg = A[register];
+		A[register] = ((reg & 0xFFFF_0000) | (data & 0xFFFF));
+
+		if (register == 7) {
+			if ((SR & 0x2000) == 0x2000) {
+				SSP = (int) A[register];
+			} else {
+				USP = (int) A[register];
+			}
+		}
+	}
+	
 
     // ========== Flags ==========
 	public boolean isX() {

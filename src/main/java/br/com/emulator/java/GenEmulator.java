@@ -34,9 +34,9 @@ public class GenEmulator {
 	}
 
 	void initializeSram() {
-//		sram[]	// TODO inicializar, e implementar bien la lectura/escritura (direccion / 2, y despues incrementa
-		// de a 2 bytes desde la direccion inicial (porque aumenta de a 4, dividido 2 =
-		// 2)
+		//sram[]	// TODO inicializar, e implementar bien la lectura/escritura 
+		//(direccion / 2, y despues incrementa de a 2 bytes desde la direccion inicial (porque aumenta de a 4, dividido 2 = 2)
+
 	}
 
 	public long read(long address, Size size) {

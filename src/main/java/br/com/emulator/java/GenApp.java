@@ -259,13 +259,19 @@ public class GenApp {
 
 		System.out.println("[CPU.TOTALINSTRUCTIONS] :  " + cpu.totalInstructions);
 
-		cpu.addressingModes = new AddressingMode[] { new DataRegisterDirect(cpu), new AddressRegisterDirect(cpu),
-				new AddressRegisterIndirect(cpu), new AddressRegisterIndirectPostIncrement(cpu),
-				new AddressRegisterIndirectPreDecrement(cpu), new AddressRegisterWithDisplacement(cpu),
+		cpu.addressingModes = new AddressingMode[] { 
+				new DataRegisterDirect(cpu), 
+				new AddressRegisterDirect(cpu),
+				new AddressRegisterIndirect(cpu), 
+				new AddressRegisterIndirectPostIncrement(cpu),
+				new AddressRegisterIndirectPreDecrement(cpu), 
+				new AddressRegisterWithDisplacement(cpu),
 				new AddressRegisterWithIndex(cpu),
-
-				new AbsoluteShort(cpu), new AbsoluteLong(cpu), new PCWithDisplacement(cpu), new PCWithIndex(cpu),
-				new ImmediateData(cpu), // solo si es un source operand TODO, si es writting es StatusRegisterOperand
+				new AbsoluteShort(cpu), 
+				new AbsoluteLong(cpu), 
+				new PCWithDisplacement(cpu), 
+				new PCWithIndex(cpu),
+				new ImmediateData(cpu), //somente se for um operando fonte TODO, se estiver escrevendo é StatusRegisterOperand
 		};
 
 		try {
