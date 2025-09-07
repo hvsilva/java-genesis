@@ -1,11 +1,21 @@
 package com.emulator;
 
+import com.emulator.addressing.AbsoluteLong;
+import com.emulator.addressing.AbsoluteShort;
 import com.emulator.addressing.AddressRegisterDirect;
 import com.emulator.addressing.AddressRegisterIndirect;
+import com.emulator.addressing.AddressRegisterIndirectPostIncrement;
+import com.emulator.addressing.AddressRegisterIndirectPreDecrement;
+import com.emulator.addressing.AddressRegisterWithDisplacement;
+import com.emulator.addressing.AddressRegisterWithIndex;
 import com.emulator.addressing.AddressingMode;
 import com.emulator.addressing.DataRegisterDirect;
+import com.emulator.addressing.ImmediateData;
+import com.emulator.addressing.PCWithDisplacement;
+import com.emulator.addressing.PCWithIndex;
 import com.emulator.instruction.ABCD;
 import com.emulator.instruction.Operation;
+
 
 public class CPU68000 {	
 	
@@ -38,15 +48,15 @@ public class CPU68000 {
             new DataRegisterDirect(this),                  // 0
             new AddressRegisterDirect(this),               // 1
             new AddressRegisterIndirect(this),             // 2
-//            new AddressRegisterIndirectPostIncrement(this),// 3
-//            new AddressRegisterIndirectPreDecrement(this), // 4
-//            new AddressRegisterWithDisplacement(this),     // 5
-//            new AddressRegisterWithIndex(this),            // 6
-//            new AbsoluteShort(this),                       // 7, reg=0
-//            new AbsoluteLong(this),                        // 7, reg=1
-//            new PCWithDisplacement(this),                  // 7, reg=2
-//            new PCWithIndex(this),                         // 7, reg=3
-//            new ImmediateData(this)                        // 7, reg=4 (normalmente só fonte)
+            new AddressRegisterIndirectPostIncrement(this),// 3
+            new AddressRegisterIndirectPreDecrement(this), // 4
+            new AddressRegisterWithDisplacement(this),     // 5
+            new AddressRegisterWithIndex(this),            // 6
+            new AbsoluteShort(this),                       // 7, reg=0
+            new AbsoluteLong(this),                        // 7, reg=1
+            new PCWithDisplacement(this),                  // 7, reg=2
+            new PCWithIndex(this),                         // 7, reg=3
+            new ImmediateData(this)                        // 7, reg=4 (normalmente só fonte)
             // Para reg=5 ou reg=6, pode ser modos reservados ou especiais, adicione se necessário!
             };
     }
