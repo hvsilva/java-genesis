@@ -1,6 +1,7 @@
 package testes;
 
-import emulator02.Cartridge;
+import com.emulator.Cartridge;
+
 import emulator03.CPU68000;
 
 public class DisassemblerCPU68000Advanced02 {

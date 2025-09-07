@@ -1,4 +1,4 @@
-package br.com.emulator.java.instruction;
+package com.emulator.instruction;
 
 public interface GenInstructionHandler {
 	void generate();

@@ -3,9 +3,10 @@ package testes;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import emulator02.Cartridge;
-import emulator02.Emulator;
-import emulator02.Memory;
+import com.emulator.Cartridge;
+import com.emulator.Emulator;
+import com.emulator.Memory;
+
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -72,8 +73,8 @@ public class EmulatorApp01 extends Application {
             if (file != null) {
                 try {
                     Cartridge cart = new Cartridge(file.getAbsolutePath());
-                    Memory memory = new Memory(cart);
-                    emulator = new Emulator(memory, gc);
+//                    Memory memory = new Memory(cart);
+//                    emulator = new Emulator(memory, gc);
                     info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
 
                     // Disassemble didático
@@ -109,7 +110,7 @@ public class EmulatorApp01 extends Application {
                 gc.setFill(Color.BLACK);
                 gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 if (emulator != null) {
-                    emulator.drawFrame();
+//                    emulator.drawFrame();
                 }
             }
         }.start();

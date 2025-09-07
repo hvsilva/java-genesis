@@ -1,4 +1,4 @@
-package emulator02;
+package com.emulator;
 
 import java.io.IOException;
 
@@ -13,7 +13,7 @@ public class MainTest {
 
 		// Roda alguns ciclos
 		for (int i = 0; i < 20; i++) {
-		    cpu.step();
+//		    cpu.step();
 		}
 
 	}

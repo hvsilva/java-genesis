@@ -4,7 +4,7 @@ public abstract class GenInstruction {
 
 	public GenInstruction() {
 	}
-	
+
 	Size mapSize(int siz) {
 		if (siz == 0b01) {
 			return Size.BYTE;
@@ -15,7 +15,7 @@ public abstract class GenInstruction {
 		}
 		return null;
 	}
-	
+
 //	SIZE
 //	00->one Byte operation
 //	01->one Word operation
@@ -30,7 +30,7 @@ public abstract class GenInstruction {
 		}
 		return null;
 	}
-	
+
 //	OP-MODE
 //	Byte	Word	Long
 //	~~~~	~~~~	~~~~
@@ -46,11 +46,10 @@ public abstract class GenInstruction {
 		}
 		return null;
 	}
-	
 
 	public GenInstruction generate(GenInstruction[] set) {
 		return null;
-		
+
 	}
 
 	public abstract void run(int opcode);

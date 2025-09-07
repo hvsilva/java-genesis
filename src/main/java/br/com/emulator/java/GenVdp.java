@@ -2,11 +2,10 @@ package br.com.emulator.java;
 
 //	info de quirks a implementar:
 //	https://emudocs.org/Genesis/Graphics/genvdp.txt
-
 public class GenVdp {
 
-	int[] vram = new int[0x10000];
-	int[] cram = new int[0x80]; // The CRAM contains 128 bytes, addresses 0 to 7F
+	int[] vram  = new int[0x10000];
+	int[] cram  = new int[0x80];  // The CRAM contains 128 bytes, addresses 0 to 7F
 	int[] vsram = new int[0x50]; // The VSRAM contains 80 bytes, addresses 0 to 4F
 
 	enum VramMode {
@@ -15,7 +14,7 @@ public class GenVdp {
 
 	VramMode vramMode;
 
-//	VSRAM
+//	 VSRAM
 //	 The VDP has 40x10 bits of on-chip vertical scroll RAM. It is accessed as
 //	 40 16-bit words through the data port. Each word has the following format:
 //
@@ -151,7 +150,6 @@ public class GenVdp {
 
 	public GenVdp(GenEmulator bus) {
 		this.bus = bus;
-
 		initColorsCache();
 	}
 

@@ -1,70 +1,24 @@
-package br.com.emulator.java.instruction;
+package com.emulator.instruction;
 
-import br.com.emulator.java.CPU68000;
-import br.com.emulator.java.GenInstruction;
-import br.com.emulator.java.Size;
+import com.emulator.CPU68000;
+import com.emulator.GenInstruction;
+import com.emulator.Size;
+
 
 public class ABCD implements GenInstructionHandler {
-
+	
 	final CPU68000 cpu;
 	
 	public ABCD(CPU68000 cpu) {
 		this.cpu = cpu;
 	}
 
-//	NAME
-//	ABCD -- Add binary coded decimal
-//
-//SYNOPSIS
-//	ABCD	Dy,Dx
-//	ABCD	-(Ay),-(Ax)
-//
-//	Size = (Byte)
-//
-//FUNCTION
-// Adiciona o operando de origem ao operando de destino junto com
-// o bit de extensão e armazena o resultado no local de destino.
-// A adição é realizada usando aritmética decimal codificada em binário.
-// Os operandos, que são números BCD empacotados, podem ser endereçados em
-//duas maneiras diferentes:
-//
-// 1. Registro de dados para registro de dados: Os operandos estão contidos no
-// registradores de dados especificados na instrução.
-//
-// 2. Memória para memória: Os operandos são endereçados com o pré-decremento
-// modo de endereçamento usando os registradores de endereço especificados no
-//instrução.
-//
-// Esta operação é apenas uma operação de bytes.
-//
-// Normalmente o bit do código de condição Z é definido via programação antes do
-// início de uma operação. Isso permite testes bem-sucedidos com zero resultados
-// após a conclusão das operações de precisão múltipla.
-//
-//FORMAT
-//	-----------------------------------------------------------------
-//	|15 |14 |13 |12 |11 |10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-//	|---|---|---|---|-----------|---|---|---|---|---|---|-----------|
-//	| 1 | 1 | 0 | 0 |    Rx     | 1 | 0 | 0 | 0 | 0 |R/M|    Ry     |
-//	-----------------------------------------------------------------
-//
-//	R/M = 0 -> data register
-//	R/M = 1 -> address register
-//	Rx:   destination register
-//	Ry:   source register
-//
-//RESULT
-//	X - Set the same as the carry bit.
-//	N - Undefined
-//	Z - Cleared if the result is non-zero. Unchanged otherwise.
-//	V - Undefined
-//	C - Set if a decimal carry was generated. Cleared otherwise.
-
 	@Override
 	public void generate() {
 		generateDataOperation();
-		generateAddressOperation();
+		generateAddressOperation();		
 	}
+	
 	
 	private void generateDataOperation() {
 		int base = 0xC100;
@@ -74,6 +28,11 @@ public class ABCD implements GenInstructionHandler {
 			@Override
 			public void run(int opcode) {
 				ABCDDataByte(opcode);
+			}
+
+			@Override
+			public int getCycles(int opcode) {
+				 return 6; // ABCD Dx,Dy: 6 ciclos
 			}
 		};
 				
@@ -94,6 +53,11 @@ public class ABCD implements GenInstructionHandler {
 			public void run(int opcode) {
 				ABCDAddressByte(opcode);
 			}
+
+			@Override
+			public int getCycles(int opcode) {
+				 return 18; // ABCD -(Ax),-(Ay): 18 ciclos
+			}
 		};
 			
 		for (int rx = 0; rx < 8; rx++) {
@@ -103,7 +67,7 @@ public class ABCD implements GenInstructionHandler {
 			}
 		}
 	}
-
+	
 	private void ABCDDataByte(int opcode) {
 		int rx = (opcode >> 9) & 0x7;
 		int ry = (opcode & 0x7);
@@ -174,5 +138,5 @@ public class ABCD implements GenInstructionHandler {
 
 		return result;
 	}
-	
+
 }

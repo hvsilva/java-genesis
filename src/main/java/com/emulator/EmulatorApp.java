@@ -1,4 +1,4 @@
-package emulator02;
+package com.emulator;
 
 import java.io.File;
 import java.util.prefs.Preferences;
@@ -79,15 +79,15 @@ public class EmulatorApp extends Application {
 				emulator.stop();
 		});
 
-		new AnimationTimer() {
-			@Override
-			public void handle(long now) {
-				gc.setFill(Color.BLACK);
-				gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-				if (emulator != null)
-					emulator.drawFrame();
-			}
-		}.start();
+//		new AnimationTimer() {
+//			@Override
+//			public void handle(long now) {
+//				gc.setFill(Color.BLACK);
+//				gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+//				if (emulator != null)
+//					emulator.drawFrame();
+//			}
+//		}.start();
 	}
 
 	// Método utilitário para carregar ROM
@@ -95,7 +95,7 @@ public class EmulatorApp extends Application {
 		try {
 			Cartridge cart = new Cartridge(file.getAbsolutePath());
 			Memory memory = new Memory(cart);
-			emulator = new Emulator(memory, gc);
+			emulator = new Emulator(memory);
 			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
 
 		} catch (Exception ex) {

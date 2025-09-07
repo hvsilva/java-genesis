@@ -1,13 +1,8 @@
-package emulator02;
+package com.emulator;
 
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.paint.Color;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import emulator02.CPU68000;
-import emulator02.Memory;
-import emulator02.VDP;
+import javafx.scene.canvas.GraphicsContext;
 
 public class Emulator {
 
@@ -15,15 +10,15 @@ public class Emulator {
     private final VDP vdp;
     private final Memory memory;
 
-    private final GraphicsContext gc; // vem do EmulatorApp
+    //private final GraphicsContext gc; // vem do EmulatorApp
+    
     private final AtomicBoolean running = new AtomicBoolean(false);
     private Thread emuThread;
 
-    public Emulator(Memory memory, GraphicsContext gc) {
+    public Emulator(Memory memory) {
         this.memory = memory;
-        this.gc = gc;
         this.cpu = new CPU68000(memory);
-        this.vdp = new VDP(gc);
+        this.vdp = new VDP();
     }
 
     /** Inicia emulação em uma thread */
@@ -61,10 +56,5 @@ public class Emulator {
             } catch (InterruptedException ignored) {
             }
         }
-    }
-
-    /** Chamado pelo AnimationTimer do EmulatorApp */
-    public void drawFrame() {
-        vdp.renderScreen();
     }
 }

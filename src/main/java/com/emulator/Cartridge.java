@@ -1,4 +1,4 @@
-package emulator02;
+package com.emulator;
 
 import java.io.IOException;
 import java.nio.file.Files;

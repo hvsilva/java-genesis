@@ -2,7 +2,7 @@ package testes;
 
 import java.io.IOException;
 
-import emulator02.Cartridge;
+import com.emulator.Cartridge;
 
 public class DisassemblerCPU68000Advanced {
 	
