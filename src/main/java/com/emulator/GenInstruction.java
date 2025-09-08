@@ -10,5 +10,5 @@ public abstract class GenInstruction {
      * Retorna o número de ciclos consumidos por essa instrução para o opcode informado.
      * Use as tabelas oficiais do Motorola 68000 para precisão.
      */
-    public abstract int getCycles(int opcode);
+//    public abstract int getCycles(int opcode);
 }

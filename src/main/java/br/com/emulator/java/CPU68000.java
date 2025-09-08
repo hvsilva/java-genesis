@@ -107,17 +107,8 @@ public class CPU68000 {
 	    // Busca o opcode da memória (bus) na posição do PC (Program Counter)
 		long opcode = bus.read(PC, Size.WORD);
 		
-		// Monta informações de debug sobre o estado atual da CPU
-		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");				
+		printDebug(opcode);
 		
-		for (int j = 0; j < 8; j++) {
-			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
-		}
-		sb.append("\r\n");
-		for (int j = 0; j < 8; j++) {
-			sb.append(" D" + j + ":" + Integer.toHexString((int) D[j]));
-		}
-		sb.append("\r\n");
 		if (print) {
 			System.out.println(sb.toString()); // Imprime estado se solicitado
 		}
@@ -178,12 +169,14 @@ public class CPU68000 {
 		 // Busca e executa a instrução decodificada
 		GenInstruction instruction = getInstruction((int) opcode);
 		instruction.run((int) opcode);
+		
+//		System.out.printf("[Instruction]: %s%n", instruction);
 
 		PC += 2; // Avança o program counter (normalmente 2 bytes para 68000)
 
 		return 0;
 	}
-	
+
 	private GenInstruction getInstruction(int opcode) {
 		GenInstruction instr = instructions[opcode];
 		if (instr == null) {
@@ -757,6 +750,20 @@ public class CPU68000 {
 		}
 
 		return taken;
+	}
+	
+	private void printDebug(long opcode) {
+		// Monta informações de debug sobre o estado atual da CPU
+		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");				
+		
+		for (int j = 0; j < 8; j++) {
+			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
+		}
+		sb.append("\r\n");
+		for (int j = 0; j < 8; j++) {
+			sb.append(" D" + j + ":" + Integer.toHexString((int) D[j]));
+		}
+		sb.append("\r\n");
 	}
 
 }

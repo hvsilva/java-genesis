@@ -919,6 +919,9 @@ public class GenVdp {
 
 	public void run(int cycles) {
 		totalCycles += cycles;
+		
+//		 System.out.println("[registers] : " + registers[1]);      
+		
 		if (totalCycles < 800) {
 			hb = 0;
 		} else if (totalCycles >= 800 && totalCycles <= 982) {

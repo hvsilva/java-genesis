@@ -94,6 +94,7 @@ public class EmulatorApp extends Application {
 	private void loadROM(File file, GraphicsContext gc, Label info) {
 		try {
 			Cartridge cart = new Cartridge(file.getAbsolutePath());
+//			Cartridge cart = new Cartridge(file);
 			Memory memory = new Memory(cart);
 			emulator = new Emulator(memory);
 			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");

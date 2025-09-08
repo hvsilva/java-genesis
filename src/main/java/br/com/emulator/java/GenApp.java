@@ -468,7 +468,6 @@ public class GenApp {
 			}
 		});
 		fileChooser.setCurrentDirectory(new File(basePath));
-//		fileChooser.setCurrentDirectory(new File(prefs));
 		int result = fileChooser.showOpenDialog(jframe);
 		if (result == JFileChooser.APPROVE_OPTION) {
 			if (isRomOpened) {
@@ -500,6 +499,7 @@ public class GenApp {
 //                memory.cartridgeMemory = GBFileLoader.readZipFile(file);
 			} else if (file.getName().toLowerCase().endsWith(".md") || file.getName().toLowerCase().endsWith(".bin")) {
 				memory.cartridge = FileLoader.readFile(file);
+				System.out.println("Loaded: " + file.getName() + " (" + memory.cartridge.length + " bytes)");
 			}
 
 			String rom = file.getName();
@@ -666,17 +666,4 @@ public class GenApp {
 			return 0xA0;
 		}
 	}
-
-	// Método utilitário para carregar ROM
-	private void loadROM(File file, GraphicsContext gc, Label info) {
-		try {
-			Cartridge cart = new Cartridge(file.getAbsolutePath());
-			Memory memory = new Memory(cart);
-			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			info.setText("Failed to load ROM: " + ex.getMessage());
-		}
-	}
-
 }

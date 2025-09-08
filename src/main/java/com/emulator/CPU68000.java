@@ -14,8 +14,8 @@ import com.emulator.addressing.ImmediateData;
 import com.emulator.addressing.PCWithDisplacement;
 import com.emulator.addressing.PCWithIndex;
 import com.emulator.instruction.ABCD;
+import com.emulator.instruction.MOVE;
 import com.emulator.instruction.Operation;
-
 
 public class CPU68000 {	
 	
@@ -30,6 +30,8 @@ public class CPU68000 {
 	public long SSP;  // Stack Pointer (supervisor)
 	public long USP;  // Stack Pointer (user) 
 	public int  SR;   // Status Register
+	
+	public boolean stop = false;
 
     // Flags simplificadas
     private boolean flagZ; // Zero
@@ -40,10 +42,7 @@ public class CPU68000 {
 
     public CPU68000(Memory mem) {
         this.memory = mem;
-        initInstructions();
-        reset();
-        initialize();        
-        
+        initInstructions();        
         this.addressingModes = new AddressingMode[] {
             new DataRegisterDirect(this),                  // 0
             new AddressRegisterDirect(this),               // 1
@@ -64,6 +63,7 @@ public class CPU68000 {
     /** Inicializa mapa de instruções */
     private void initInstructions() {
     	new ABCD(this).generate();
+    	new MOVE(this).generate();
     }
     
     /** Reset realista (SP e PC vêm da ROM) */
@@ -91,18 +91,22 @@ public class CPU68000 {
 	
     /** Executa uma instrução e retorna ciclos gastos */
     public int runInstruction() {
-		int opcode = memory.read(PC, Size.WORD); // pega do bus
+    	long opcode = memory.read(PC, Size.WORD); // pega do bus
 		PC = (PC + 2) & 0xFFFFFF;
 
-        GenInstruction instr = instructions[opcode];
+        GenInstruction instr = instructions[(int) opcode];
         int cycles = 0;
         if (instr != null) {
-            instr.run(opcode);
-            dumpState(opcode);   
-            cycles = instr.getCycles(opcode); 
+        	
+        	System.out.printf("[Instruction]: %s%n", instr);
+        	
+            instr.run((int) opcode);
+          
+            dumpState((int) opcode);   
+//            cycles = instr.getCycles(opcode); 
         } else {
             System.out.printf("Opcode não implementado: %04X%n", opcode);
-            cycles = estimateCycles(opcode);
+            cycles = estimateCycles((int) opcode);
         }
         return cycles;
     }
@@ -252,6 +256,26 @@ public class CPU68000 {
 		flagZ = true;
 	}
 	
+	public void setN() {
+		SR = bitSet(SR, 3);
+	}
+	
+	public void clearN() {
+		SR = bitReset(SR, 3);
+	}
+	
+	public void clearV() {
+		SR = bitReset(SR, 1);
+	}
+	
+	public int bitSet(int address, int position) {
+		return address | (1 << position);
+	}
+	
+	public int bitReset(int address, int position) {
+		return address & ~(1 << position);
+	}
+	
 	public Operation resolveAddressingMode(Size size, int mode, int register) {
 		return resolveAddressingMode(PC + 2, size, mode, register);
 	}
@@ -292,5 +316,9 @@ public class CPU68000 {
 		} else if (Size.LONG == size) {
 			addressing.setLong(o);
 		}
+	}
+	
+	public int getInterruptMask() {
+	    return (SR >> 8) & 0x7; // bits 8-10 = interrupt mask
 	}
 }
