@@ -1,5 +1,7 @@
 package com.emulator;
 
+import java.util.Random;
+
 public class Memory {
 
     private final byte[] rom;
@@ -26,64 +28,77 @@ public class Memory {
     // =======================
     // ======= READ ==========
     // =======================
-    public long  read(long address, Size size) {
-    	address = address & 0xFF_FFFF; // o mapa de memória 
-    	long data;
+    public long read(long address, Size size) {
+    	 address &= 0xFF_FFFF; // 24-bit mask
+    	    long data = 0;
 
-        // 1. Cartridge ROM
-        if (address < rom.length) {
-            return safeReadBytes(rom, (int) address, size, "ROM");
-        }
+    	    // ======================
+    	    // 1. Cartridge ROM (0x000000 – 0x3FFFFF)
+    	    // ======================
+    	    if (address <= 0x3FFFFF) {
+    	        if (address < rom.length) {
+    	            return safeReadBytes(rom, (int) address, size, "ROM");
+    	        } else {
+    	            return 0xFF; // "open bus"
+    	        }
+    	    }
 
-        // 2. SRAM
-        else if (address >= 0x200000 && address < 0x200000 + sram.length) {
-            int offset = (int) (address - 0x200000);
-            return safeReadBytes(sram, offset, size, "SRAM");
-        }
+    	    // ======================
+    	    // 2. SRAM (0x200000 – 0x20FFFF)
+    	    // ======================
+    	    if (address >= 0x200000 && address <= 0x20FFFF) {
+    	        int offset = (int) (address - 0x200000);
+    	        return safeReadBytes(sram, offset, size, "SRAM");
+    	    }
 
-        // 3. VDP
-        else if (address == 0xC00000 || address == 0xC00002) { // VDP Data
-        	if (size == Size.BYTE) {
-				return (vdp.readDataPort(size) >> 8);
-			} else if (size == Size.WORD) {
-				return (vdp.readDataPort(size));
-			} else {
-				data = vdp.readDataPort(size) << 16;
-				data |= vdp.readDataPort(size);
-			}
-        } else if (address == 0xC00001 || address == 0xC00003) { // VDP Data
-        	return (vdp.readDataPort(size) & 0xFF);
-        
-        } else if (address == 0xC00004 || address == 0xC00006) { // VDP Control
-			data = vdp.readControl();
-			if (size == Size.WORD) {
-				return data;
-			} else if (size == Size.BYTE) {
-				return data >> 8;
-			} else {
-				throw new RuntimeException();
-			}
-		} 
+    	    // -----------------------------
+    	    // VDP Ports
+    	    // -----------------------------
+    	    if (address == 0xC00000 || address == 0xC00002) { // Data Port (high/word/long)
+    	        if (size == Size.BYTE) return (vdp.readDataPort(size) >> 8);
+    	        if (size == Size.WORD) return vdp.readDataPort(size);
+    	        return (vdp.readDataPort(Size.WORD) << 16) | vdp.readDataPort(Size.WORD);
 
-        // 4. RAM
-        else if (address >= 0xFF0000) {
-            int offset = (int) (address - 0xFF0000);
-            return safeReadBytes(ram, offset, size, "RAM");
-        }
+    	    } else if (address == 0xC00001 || address == 0xC00003) { // Data Port (low byte)
+    	        return vdp.readDataPort(size) & 0xFF;
 
-        // 5. Default
-        else {
-            System.err.printf("Read unmapped: %06X%n", address);
-            return 0xFFFFFFFFL; // valor "aberto" (sem bus)
-        }
-        
-    	return 0;
+    	    } else if (address == 0xC00004 || address == 0xC00006) { // Control Port
+    	        data = vdp.readControl();
+    	        if (size == Size.WORD) return data;
+    	        if (size == Size.BYTE) return data >> 8;
+    	        throw new RuntimeException("Invalid long read from VDP control");
+
+    	    } else if (address == 0xC00005 || address == 0xC00007) { // Control Port (low byte)
+    	        data = vdp.readControl();
+    	        if (size == Size.BYTE) return data & 0xFF;
+    	        throw new RuntimeException("Invalid word/long read from VDP control");
+
+    	    } else if (address == 0xC00008 || address == 0xC00009) { // HV Counter
+    	        int v = vdp.line; // linha atual
+    	        int h = new Random().nextInt(256); // stub do H-counter
+    	        if (size == Size.WORD) return (v << 8) | h;
+    	        return (address == 0xC00008) ? v : h;
+    	    }
+
+    	    // ======================
+    	    // 4. Work RAM (0xFF0000 – 0xFFFFFF)
+    	    // ======================
+    	    if (address >= 0xFF0000) {
+    	        int offset = (int) (address - 0xFF0000);
+    	        return safeReadBytes(ram, offset, size, "RAM");
+    	    }
+
+    	    // ======================
+    	    // Default: not mapped
+    	    // ======================
+    	    System.err.printf("Read unmapped: %06X%n", address);
+    	    return 0xFFFFFFFFL;
     }
 
     // =======================
     // ======= WRITE =========
     // =======================
-    public void write(long address, long data, Size size) {
+    public long write(long address, long data, Size size) {
     	long addressL = (address & 0xFFFFFF); // 24-bit mask (68k bus)
 
         // Ajusta valor conforme tamanho
@@ -137,7 +152,12 @@ public class Memory {
         // Joypad / I/O Ports
         // ----------------------------------------------------------------
         else if (addressL >= 0xA10000 && addressL <= 0xA1001F) {
-//            joypad.write(addr, data, size);
+          	data = getRegion();
+			if (size == Size.BYTE) {
+				return data;
+			} else {
+				return data << 8 | data;
+			}
         }
 
         // ----------------------------------------------------------------
@@ -197,6 +217,8 @@ public class Memory {
         else {
             System.err.printf("Write unmapped: %06X (data=%X)%n", addressL, data);
         }
+        
+        return 0;
     }
 
     // =======================
@@ -273,5 +295,13 @@ public class Memory {
     public VDP getVDP() {
         return vdp;
     }
+    
+	// US: A0A0 rev 0 o A1A1 rev 1
+	// EU: C1C1
+	// JP: ????
+	// US SEGA CD: 8181
+	public long getRegion() {
+		return 0;
+	}
 
 }

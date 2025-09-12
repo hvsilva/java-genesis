@@ -2,16 +2,19 @@ package com.emulator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javafx.scene.canvas.GraphicsContext;
-
 public class Emulator {
 
 	private final CPU68000 cpu;
     private final VDP vdp;
     private final Memory memory;
     
+    private final Video video;
+    
     boolean vintPending;
 	boolean hintPending;
+	
+	int hLinesPassed = 0;
+
 
     //private final GraphicsContext gc; // vem do EmulatorApp
     
@@ -22,7 +25,13 @@ public class Emulator {
         this.memory = memory;
         this.cpu = new CPU68000(memory);
         this.vdp = new VDP();
+        this.video = new Video(VDP.WIDTH, VDP.HEIGHT);
+      
     }
+    
+//    public void setGraphicsContext(javafx.scene.canvas.GraphicsContext gc) {
+//        video.setGraphicsContext(gc);
+//    }
 
     /** Inicia emulação em uma thread */
     public void start() {
@@ -52,7 +61,7 @@ public class Emulator {
 
                 // Execução da CPU 68000 (principal)
                 if (!cpu.stop) {
-                    int cycles = cpu.runInstruction();
+                    int cycles = cpu.runInstruction(true);
                     
                     // Checagem de interrupções do barramento (como GenApp faz)
                     checkInterrupts();
@@ -63,6 +72,13 @@ public class Emulator {
                     // DMA do VDP (pode rodar mais de uma vez por ciclo)
                     vdp.dmaFill();
                     vdp.dmaFill();
+                    
+                    // gera o frame
+//                    vdp.renderFrame();
+
+                    // desenha (thread-safe: chama Swing no EDT)
+//                    video.draw(vdp.getFrameBuffer());
+
                 }
             }
         } catch (RuntimeException e) {

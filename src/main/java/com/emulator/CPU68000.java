@@ -14,8 +14,10 @@ import com.emulator.addressing.ImmediateData;
 import com.emulator.addressing.PCWithDisplacement;
 import com.emulator.addressing.PCWithIndex;
 import com.emulator.instruction.ABCD;
+import com.emulator.instruction.BCC;
 import com.emulator.instruction.MOVE;
 import com.emulator.instruction.Operation;
+import com.emulator.instruction.TST;
 
 public class CPU68000 {	
 	
@@ -64,6 +66,8 @@ public class CPU68000 {
     private void initInstructions() {
     	new ABCD(this).generate();
     	new MOVE(this).generate();
+    	new TST(this).generate();
+    	new BCC(this).generate();
     }
     
     /** Reset realista (SP e PC vêm da ROM) */
@@ -90,22 +94,37 @@ public class CPU68000 {
 	}
 	
     /** Executa uma instrução e retorna ciclos gastos */
-    public int runInstruction() {
-    	long opcode = memory.read(PC, Size.WORD); // pega do bus
-		PC = (PC + 2) & 0xFFFFFF;
+    public int runInstruction(boolean print) {
+    	// Busca o opcode da memória (bus) na posição do PC (Program Counter)
+    	long opcode = memory.read(PC, Size.WORD); 
+		
 
         GenInstruction instr = instructions[(int) opcode];
+        
+		if (print) {
+			StringBuilder sb = new StringBuilder();			
+			printDebug(opcode, sb);
+			System.out.println(sb.toString()); // Imprime estado se solicitado
+		}
+        
+        
         int cycles = 0;
         if (instr != null) {
         	
-        	System.out.printf("[Instruction]: %s%n", instr);
+//        	System.out.printf("[Instruction]: %s%n", instr);
+//          System.err.printf("Opcode %04X não implementado em PC=%08X%n [Instruction]: %s%n", opcode, PC, instr);
         	
-            instr.run((int) opcode);
-          
-            dumpState((int) opcode);   
+        	
+            instr.run((int) opcode);  
+            
+            PC = (PC + 2) & 0xFFFFFF;
+    
+            
+//            dumpState((int) opcode);   
 //            cycles = instr.getCycles(opcode); 
         } else {
-            System.out.printf("Opcode não implementado: %04X%n", opcode);
+//            System.out.printf("Opcode não implementado: %04X%n", opcode);
+            System.err.printf("Opcode %04X não implementado em PC=%08X%n ", opcode, PC);
             cycles = estimateCycles((int) opcode);
         }
         return cycles;
@@ -131,6 +150,21 @@ public class CPU68000 {
         System.out.printf("SSP=%08X%n", SSP);
         System.out.printf("Flags [X=%b Z=%b N=%b C=%b V=%b]%n", flagX, flagZ, flagN, flagC, flagV);
     }
+    
+	private void printDebug(long opcode, StringBuilder sb) {	
+		
+		// Monta informações de debug sobre o estado atual da CPU
+		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");				
+		
+		for (int j = 0; j < 8; j++) {
+			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
+		}
+		sb.append("\r\n");
+		for (int j = 0; j < 8; j++) {
+			sb.append(" D" + j + ":" + Integer.toHexString((int) D[j]));
+		}
+		sb.append("\r\n");
+	}
     
     int totalInstructions = 0;
 	public void addInstruction(int opcode, GenInstruction ins) {
@@ -268,6 +302,27 @@ public class CPU68000 {
 		SR = bitReset(SR, 1);
 	}
 	
+	public void setV() {
+		SR = bitSet(SR, 1);
+	}
+	
+
+	public boolean isC() {
+		return bitTest(SR, 0);
+	}
+	
+	public boolean isZ() {
+		return bitTest(SR, 2);
+	}
+	
+	public boolean isV() {
+		return bitTest(SR, 1);
+	}
+	
+	public boolean isN() {
+		return bitTest(SR, 3);
+	}
+	
 	public int bitSet(int address, int position) {
 		return address | (1 << position);
 	}
@@ -275,6 +330,11 @@ public class CPU68000 {
 	public int bitReset(int address, int position) {
 		return address & ~(1 << position);
 	}
+	
+	public boolean bitTest(long address, int position) {
+		return ((address & (1 << position)) != 0);
+	}
+
 	
 	public Operation resolveAddressingMode(Size size, int mode, int register) {
 		return resolveAddressingMode(PC + 2, size, mode, register);
@@ -320,5 +380,112 @@ public class CPU68000 {
 	
 	public int getInterruptMask() {
 	    return (SR >> 8) & 0x7; // bits 8-10 = interrupt mask
+	}
+	
+//	Condition code 'cc' specifies one of the following:
+//0000 F  False            Z = 1      1000 VC oVerflow Clear   V = 0
+//0001 T  True             Z = 0      1001 VS oVerflow Set     V = 1
+//0010 HI HIgh             C + Z = 0  1010 PL PLus             N = 0
+//0011 LS Low or Same      C + Z = 1  1011 MI MInus            N = 1
+//0100 CC Carry Clear      C = 0      1100 GE Greater or Equal N (+) V = 0
+//0101 CS Carry Set        C = 1      1101 LT Less Than        N (+) V = 1
+//0110 NE Not Equal        Z = 0      1110 GT Greater Than     Z + (N (+) V) = 0
+//0111 EQ EQual            Z = 1      1111 LE Less or Equal    Z + (N (+) V) = 1
+	public boolean evaluateBranchCondition(int cc, Size size) {
+		boolean taken;
+
+		switch (cc) {
+		case 0b0000:
+			taken = true;
+			break;
+		case 0b0001:
+			// es un BSR
+			long oldPC;
+			if (size == Size.BYTE) {
+				oldPC = PC + 2;
+			} else if (size == Size.WORD) {
+				oldPC = PC + 4;
+			} else {
+				throw new RuntimeException("");
+			}
+
+			taken = true;
+
+			if ((SR & 0x2000) == 0x2000) {
+				SSP--;
+				memory.write(SSP, oldPC & 0xFF, Size.BYTE);
+				SSP--;
+				memory.write(SSP, (oldPC >> 8) & 0xFF, Size.BYTE);
+				SSP--;
+				memory.write(SSP, (oldPC >> 16) & 0xFF, Size.BYTE);
+				SSP--;
+				memory.write(SSP, (oldPC >> 24), Size.BYTE);
+
+				setALong(7, SSP);
+			} else {
+				USP--;
+				memory.write(USP, oldPC & 0xFF, Size.BYTE);
+				USP--;
+				memory.write(USP, (oldPC >> 8) & 0xFF, Size.BYTE);
+				USP--;
+				memory.write(USP, (oldPC >> 16) & 0xFF, Size.BYTE);
+				USP--;
+				memory.write(USP, (oldPC >> 24), Size.BYTE);
+
+				setALong(7, USP);
+			}
+
+			break;
+		case 0b0010: // C + Z = 0 the C and Z flags are both clear
+			taken = !isC() && !isZ();
+			break;
+		case 0b0011: // C + Z = 1 the C or Z flag is set
+			taken = isC() || isZ();
+			break;
+		case 0b0100:
+			taken = !isC();
+			break;
+		case 0b0101:
+			taken = isC();
+			break;
+		case 0b0110:
+			taken = !isZ();
+			break;
+		case 0b0111:
+			taken = isZ();
+			break;
+		case 0b1000:
+			taken = !isV();
+			break;
+		case 0b1001:
+			taken = isV();
+			break;
+		case 0b1010:
+			taken = !isN();
+			break;
+		case 0b1011:
+			taken = isN();
+			break;
+		case 0b1100: // BGE � Branch on Greater than or Equal 1) The N and V flags are both clear 2)
+						// The N and V flags are both set
+			taken = (!isN() && !isV()) || (isN() && isV());
+			break;
+		case 0b1101: // BLT � Branch on Lower Than N (+) V = 1 1) The N flag is clear, but the V flag
+						// is set 2) The N flag is set, but the V flag is clear
+			taken = (!isN() && isV()) || (isN() && !isV());
+			break;
+		case 0b1110: // BGT Greater Than Z + (N (+) V) = 0 1) The Z, N and V flags are all clear 2)
+						// The Z flag is clear, but the N and V flags are both set
+			taken = (!isZ() && !isN() && !isV()) || (!isZ() && isN() && isV());
+			break;
+		case 0b1111: // BLE Less or Equal Z + (N (+) V) = 1 1) The Z flag is clear 2) The N flag is
+						// clear, but the V flag is set 3) The N flag is set, but the V flag is clear
+			taken = isZ() || (!isZ() && !isN() && isV()) || (!isZ() && isN() && !isV());
+			break;
+		default:
+			throw new RuntimeException("not impl " + cc);
+		}
+
+		return taken;
 	}
 }

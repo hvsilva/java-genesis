@@ -24,11 +24,10 @@ public class VDP {
     public int[] registers = new int[32];
 
     // Framebuffer (ARGB32)
-    private int[] framebuffer = new int[WIDTH * HEIGHT];
+     int[] framebuffer = new int[WIDTH * HEIGHT];
 
     // Controle de ciclos/linha/quadro
-    private int totalCycles = 0;
-  
+    private int totalCycles = 0;  
 
     // Flags
     boolean vblank = false;
@@ -103,8 +102,7 @@ public class VDP {
 	
 	int dataPort;
 	int addressPort;
-	int autoIncrementTotal;
-	
+	int autoIncrementTotal;	
 	
 	int nextFIFOReadEntry;
 	int nextFIFOWriteEntry;
@@ -139,10 +137,20 @@ public class VDP {
 	int dma;
 //	PAL seems to be set when the system's display is PAL, and possibly reflects the state of having 240 line display enabled. The same information can be obtained from the version register.
 	int pal;
+	
+	int spritesLine = 0;
+	
+	int spritesFrame = 0;
 
 	long all;
 
 	int line;
+	
+//	Emulator bus;
+	
+//	public VDP(Emulator bus) {			
+//		this.bus = bus;		
+//	}
 
 
     /**
@@ -151,22 +159,33 @@ public class VDP {
     public void run(int cycles) {
         totalCycles += cycles;
         
-        System.out.println("[registers] : " + registers[1]);      
+//        System.out.println("[registers] : " + registers[1]);      
       
         if (totalCycles < 800) {
             hblank = false;
         } else if (totalCycles >= 800 && totalCycles <= 982) {
             hblank = true;
         } else if (totalCycles > 982) {
-            // Fim da linha -> renderiza
-            if ((registers[1] & 0x40) != 0) { // bit de 'display enable'
-                if (line < HEIGHT) {
-                    // Nova lógica: renderiza todas as camadas para a linha atual
+            // Execução ao fim da linha
+            if ((registers[1] & 0x40) != 0) { // bit de display enable
+                if (line < 0xE0) { // 224 linhas visíveis
+                    spritesLine = 0;
+
                     renderBackground(line);
-                    renderPlaneB(line);
                     renderPlaneA(line);
+                    renderPlaneB(line);
+                    renderWindow(line);
                     renderSprites(line);
                 }
+            }
+
+            // Geração de interrupção H (HINT)
+            if (line < 0xE0) {
+//                bus.hLinesPassed--;
+//                if (bus.hLinesPassed == -1) {
+//                    bus.hintPending = true;
+//                    bus.hLinesPassed = registers[0xA];
+//                }
             }
 
             line++;
@@ -174,20 +193,125 @@ public class VDP {
             hblank = false;
         }
 
-        // Fim do quadro (VBlank ON)
-        if (line >= 0xE0 && !vblank) {
-            vblank = true;
-            // Agora, a tela está completa. Renderiza o framebuffer para a tela final.
-            renderScreen(); 
-            // Aqui poderíamos sinalizar IRQ de VBlank para CPU
+        // Reinício do quadro
+        if (line > 0xFF) { // passou das 262 linhas
+            line = 0;
+            evaluateSprites();
+//            bus.hLinesPassed = registers[0xA];
         }
 
-        // Reinicia quadro
-        if (line > 0xFF) {
-            line = 0;
-            vblank = false;
+        // VBlank (fim do frame visível)
+        if (line == 0xE0 && totalCycles == 0) {
+            vblank = true;
+            vip = 1;
+
+            spritesFrame = 0;
+
+            if ((registers[1] & 0x40) != 0) { // se display ativo
+                compaginateImage(); // organiza o framebuffer final
+//                bus.emu.renderScreen(); // chama o emulador para desenhar na tela
+            }
+        } else if (line < 0xE0 && ((registers[1] & 0x40) != 0)) {
+            vblank = false; // durante linhas visíveis
         }
     }
+
+    
+    // Primeiro render: só pinta a tela com a cor 0 da CRAM
+    public void renderFrame() {
+        int baseColor = cramToArgb(cram[0] & 0xFFFF); // cor de fundo
+        for (int i = 0; i < framebuffer.length; i++) {
+            framebuffer[i] = baseColor;
+        }
+    }
+    
+    // Converte entrada da CRAM (9-bit BGR) para 32-bit ARGB
+    private int cramToArgb(int cramValue) {
+        int r = ((cramValue >> 1) & 0x07) * 36;
+        int g = ((cramValue >> 5) & 0x07) * 36;
+        int b = ((cramValue >> 9) & 0x07) * 36;
+        return (0xFF << 24) | (r << 16) | (g << 8) | b;
+    }
+    
+    /**
+     * Renderiza a camada Window (se ativa) para a linha atual.
+     */
+    private void renderWindow(int line) {
+        // Display desligado → não renderiza nada
+        if ((registers[1] & 0x40) == 0) return;
+
+        // Posição do Window (em tiles de 8px, multiplicado por 8 → pixels)
+        int windowX = (registers[0x11] & 0x1F) * 8;
+        int windowY = (registers[0x12] & 0x1F) * 8;
+
+        // Verifica se a linha atual está dentro da região vertical do Window
+        if (line < windowY || line >= HEIGHT) return;
+
+        // Aqui substituímos o Plane A pela área de Window
+        for (int x = windowX; x < WIDTH; x++) {
+            int index = line * WIDTH + x;
+
+            // Didático: cor fixa azul para o Window
+            framebuffer[index] = 0xFF0000FF; // ARGB (azul sólido)
+        }
+
+        // Mais tarde: aqui você chamará renderTilemapLine(windowBase, line, windowX, true);
+    }
+    
+    /**
+     * Avalia os sprites na VRAM e prepara para o próximo frame.
+     */
+    private void evaluateSprites() {
+        spritesFrame = 0; // zera contador do frame
+
+        // Didático: gera 10 sprites de teste em posições diferentes
+//        for (int i = 0; i < 10; i++) {
+//            Sprite s = new Sprite();
+//            s.x = 16 + i * 24;
+//            s.y = 32 + i * 16;
+//            s.color = 0xFFFFFF00; // amarelo
+//            s.priority = 0;
+//            sprites[spritesFrame++] = s;
+//        }
+
+        // Mais tarde: aqui você vai ler a Sprite Attribute Table da VRAM
+        // e carregar os dados reais (Y, link, tile index, X, atributos).
+    }
+    
+    /**
+     * Junta todas as camadas em um único framebuffer (um frame inteiro).
+     */
+    private void compaginateImage() {
+        // limpa com a cor de fundo
+        int baseColor = cramToArgb(cram[0] & 0xFFFF);
+        for (int i = 0; i < framebuffer.length; i++) {
+            framebuffer[i] = baseColor;
+        }
+
+        // Renderiza camada por camada
+        for (int line = 0; line < HEIGHT; line++) {
+            renderBackground(line);
+            renderPlaneB(line);
+            renderPlaneA(line);
+            renderWindow(line);
+            renderSprites(line);
+        }
+    }
+	
+ 
+//    /** Renderiza quadro completo */
+//    public void renderFrame() {
+//        for (int y = 0; y < HEIGHT; y++) {
+//            renderScanline(y);
+//        }
+//    }
+//    
+//    /** Preenche scanline (exemplo: gradiente) */
+//    public void renderScanline(int y) {
+//        for (int x = 0; x < WIDTH; x++) {
+//            framebuffer[y * WIDTH + x] = 0xFF000000 | ((x * 255 / WIDTH) << 16) | ((y * 255 / HEIGHT) << 8); // gradiente
+//        }
+//    }	
     
 	void init() {
 		empty = 1;
@@ -255,6 +379,26 @@ public class VDP {
 		} else { // Write 2 - Setting RAM address
 			writeRamAddress(data);
 		}
+	}
+	
+	public long readDataPort(Size size) {
+		if (vramMode == VramMode.vramRead) {
+			long data = readVram(size);
+			return data;
+
+		} else if (vramMode == VramMode.cramRead) {
+			long data = readCram(size);
+			return data;
+
+		} else if (vramMode == VramMode.vsramRead) {
+			long data = readVsram(size);
+			return data;
+
+		} else {
+			System.out.println("Comando de leitura, mas gravação, modo de vídeo: " + vramMode.toString());
+//			throw new RuntimeException("Modo video: " + vramMode.toString());
+		}
+		return 0;
 	}
 	
 	private void writeRegister(long data) {
@@ -396,21 +540,14 @@ public class VDP {
 			}
 		}
 	}
-	
-	public void renderScreen() {
-//	    if (gc == null) return; // se não tem GraphicsContext, não faz nada
-//
-//	    for (int y = 0; y < HEIGHT; y++) {
-//	        for (int x = 0; x < WIDTH; x++) {
-//	            int colorARGB = framebuffer[y * WIDTH + x];
-//	            Color color = Color.rgb(
-//	                (colorARGB >> 16) & 0xFF,
-//	                (colorARGB >> 8) & 0xFF,
-//	                colorARGB & 0xFF
-//	            );
-//	            gc.getPixelWriter().setColor(x, y, color);
-//	        }
-//	    }
+
+	// Converte CRAM 9-bit (BGR) para RGB888
+	private int cramToRgb(int index) {
+	    int word = cram[index] & 0xFFFF;
+	    int r = ((word >> 1) & 0x07) * 36;
+	    int g = ((word >> 5) & 0x07) * 36;
+	    int b = ((word >> 9) & 0x07) * 36;
+	    return (0xFF << 24) | (r << 16) | (g << 8) | b; // ARGB
 	}
     
     public int read(long address, Size size) {
@@ -697,31 +834,12 @@ public class VDP {
 	
 	int readControl() {
 //		TODO When you do a 16-bit read of the status register, the upper 6 bits are not set by the VDP. The value assigned to these bits will be whatever value these bits were set to from the last read the M68000 performed. Writes from the M68000 don't affect these bits, only reads.
-			int control = ((empty << 9) | (full << 8) | (vip << 7) | (sovr << 6) | (scol << 5) | (odd << 4) | (vb << 3)
-					| (hb << 2) | (dma << 1) | (pal << 0));
+		int control = ((empty << 9) | (full << 8) | (vip << 7) | (sovr << 6) | (scol << 5) | (odd << 4) | (vb << 3)
+				| (hb << 2) | (dma << 1) | (pal << 0));
 
-			return control;
-		}
-	
-	public long readDataPort(Size size) {
-		if (vramMode == VramMode.vramRead) {
-			long data = readVram(size);
-			return data;
+		return control;
+	}	
 
-		} else if (vramMode == VramMode.cramRead) {
-			long data = readCram(size);
-			return data;
-
-		} else if (vramMode == VramMode.vsramRead) {
-			long data = readVsram(size);
-			return data;
-
-		} else {
-			System.out.println("Comando de leitura, mas gravação, modo de vídeo: " + vramMode.toString());
-//			throw new RuntimeException("Modo video: " + vramMode.toString());
-		}
-		return 0;
-	}
 	
 	private long readVram(Size size) {
 		int index = nextFIFOReadEntry;

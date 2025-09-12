@@ -107,9 +107,8 @@ public class CPU68000 {
 	    // Busca o opcode da memória (bus) na posição do PC (Program Counter)
 		long opcode = bus.read(PC, Size.WORD);
 		
-		printDebug(opcode);
-		
 		if (print) {
+			printDebug(opcode);
 			System.out.println(sb.toString()); // Imprime estado se solicitado
 		}
 
@@ -137,34 +136,34 @@ public class CPU68000 {
 //		if (PC == 0x3da) {
 //		}
 		
-	    for (Breakpoint bp : breakpoints) {
-	        switch (bp.type) {
-	            case PC:
-	                if ((int)PC == bp.address) {
-	                    System.out.println("Breakpoint atingido: PC=" + Integer.toHexString((int)PC));
-	                    print = true;
-	                }
-	                break;
-	            case VRAM:
-	                if (bus.vdp.vram[bp.address] == bp.value) {
-	                    System.out.println("Breakpoint VRAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
-	                    print = true;
-	                }
-	                break;
-	            case RAM:
-	                if (bus.memory.ram[bp.address] == bp.value) {
-	                    System.out.println("Breakpoint RAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
-	                    print = true;
-	                }
-	                break;
-	            case CRAM:
-	                if (bus.vdp.cram[bp.address] == bp.value) {
-	                    System.out.println("Breakpoint CRAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
-	                    print = true;
-	                }
-	                break;
-	        }
-	    }
+//	    for (Breakpoint bp : breakpoints) {
+//	        switch (bp.type) {
+//	            case PC:
+//	                if ((int)PC == bp.address) {
+//	                    System.out.println("Breakpoint atingido: PC=" + Integer.toHexString((int)PC));
+//	                    print = true;
+//	                }
+//	                break;
+//	            case VRAM:
+//	                if (bus.vdp.vram[bp.address] == bp.value) {
+//	                    System.out.println("Breakpoint VRAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
+//	                    print = true;
+//	                }
+//	                break;
+//	            case RAM:
+//	                if (bus.memory.ram[bp.address] == bp.value) {
+//	                    System.out.println("Breakpoint RAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
+//	                    print = true;
+//	                }
+//	                break;
+//	            case CRAM:
+//	                if (bus.vdp.cram[bp.address] == bp.value) {
+//	                    System.out.println("Breakpoint CRAM[" + Integer.toHexString(bp.address) + "]=" + Integer.toHexString(bp.value));
+//	                    print = true;
+//	                }
+//	                break;
+//	        }
+//	    }
 
 		 // Busca e executa a instrução decodificada
 		GenInstruction instruction = getInstruction((int) opcode);

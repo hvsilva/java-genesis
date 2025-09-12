@@ -251,46 +251,42 @@ public class GenEmulator {
 		return 0;
 	}
 
-	// https://wiki.megadrive.org/index.php?title=IO_Registers
+//	https://wiki.megadrive.org/index.php?title=IO_Registers
 	public void write(long address, long data, Size size) {
-		long addressL = (address & 0xFFFFFF); // 24-bit mask (68k bus)
-
-		// Ajusta tamanho do dado conforme size
+		long addressL = (address & 0xFF_FFFF);
 		if (size == Size.BYTE) {
 			data = data & 0xFF;
 		} else if (size == Size.WORD) {
 			data = data & 0xFFFF;
 		} else {
-			data = data & 0xFFFFFFFFL;
+			data = data & 0xFFFF_FFFFL;
 		}
-
-		// --------------------------------------------------------------------
-		// Cartridge ROM/RAM + SRAM
-		// --------------------------------------------------------------------
-		if (addressL <= 0x3FFFFF) {
-			if (addressL >= 0x200000 && addressL <= 0x20FFFF && writeSram) {
-				int offset = (int) (addressL - 0x200000);
-
+		
+		if (addressL <= 0x3FFFFF) {	//	Cartridge ROM/RAM
+			if (addressL >= 0x200000 && address <= 0x20FFFF && writeSram) {
+				addressL = addressL - 0x200000;
+				
 				if (size == Size.BYTE) {
-					sram[offset] = (int) data;
+					if (address < 0x200) {
+						sram[(int) addressL] = (int) data;
+					}
+					
 				} else if (size == Size.WORD) {
-					sram[offset] = (int) ((data >> 8) & 0xFF);
-					sram[offset + 1] = (int) (data & 0xFF);
+					sram[(int) addressL] = (int) (data >> 8) & 0xFF;
+					sram[(int) addressL + 1] = (int) data & 0xFF;
 				} else {
-					sram[offset] = (int) ((data >> 24) & 0xFF);
-					sram[offset + 1] = (int) ((data >> 16) & 0xFF);
-					sram[offset + 2] = (int) ((data >> 8) & 0xFF);
-					sram[offset + 3] = (int) (data & 0xFF);
+					sram[(int) addressL] = (int) (data >> 24) & 0xFF;
+					sram[(int) addressL + 1] = (int) (data >> 16) & 0xFF;
+					sram[(int) addressL + 2] = (int) (data >> 8) & 0xFF;
+					sram[(int) addressL + 3] = (int) data & 0xFF;
 				}
+				
 			} else {
 				System.out.println("write cart rom ram ? " + Integer.toHexString((int) addressL));
 			}
-
-			// --------------------------------------------------------------------
-			// Z80 addressing space
-			// --------------------------------------------------------------------
-		} else if (addressL >= 0xA00000 && addressL <= 0xA0FFFF) {
-			int addr = (int) (addressL - 0xA00000);
+			
+		} else if (addressL >= 0xA00000 && addressL <= 0xA0FFFF) {	//	Z80 addressing space
+			int addr = (int) (address - 0xA00000);
 			if (size == Size.BYTE) {
 				z80.writeByte(addr, data);
 			} else if (size == Size.WORD) {
@@ -299,82 +295,121 @@ public class GenEmulator {
 				z80.writeWord(addr, data >> 16);
 				z80.writeWord(addr + 2, data & 0xFFFF);
 			}
-
-			// --------------------------------------------------------------------
-			// Joypad / I/O Ports
-			// --------------------------------------------------------------------
-		} else if (addressL == 0xA10002 || addressL == 0xA10003) {
+			
+//			System.out.println("Z80: " + pad4(addr) + " " + pad((int) data));
+			
+		} else if (address == 0xA10002 || address == 0xA10003) {	//	Controller 1 data
 			joypad.writeDataRegister1(data);
-		} else if (addressL == 0xA10004 || addressL == 0xA10005) {
+			
+		} else if (address == 0xA10004 || address == 0xA10005) {	//	Controller 2 data
 			joypad.writeDataRegister2(data);
-		} else if (addressL == 0xA10006 || addressL == 0xA10007) {
-			// Expansion port data (não implementado)
-		} else if (addressL == 0xA10009) {
+		
+		} else if (address == 0xA10006 || address == 0xA10007) {	//	Expansion port data
+			// ???
+			
+		} else if (addressL == 0xA10009) {	//	Controller 1 control
 			joypad.writeControlRegister1(data);
-		} else if (addressL == 0xA1000B) {
+			
+		} else if (addressL == 0xA1000B) {	//	Controller 2 control
 			joypad.writeControlRegister2(data);
-		} else if (addressL == 0xA1000D) {
+			
+		} else if (addressL == 0xA1000D) {	//	Controller 2 control
 			joypad.writeControlRegister3(data);
-		} else if (addressL == 0xA10012 || addressL == 0xA10013) {
+		
+		} else if (address == 0xA10012 || address == 0xA10013) {	//	Controller 1 serial control
 			System.out.println("IMPL CONTR 1 !!");
-		} else if (addressL == 0xA10018 || addressL == 0xA10019) {
+			
+		} else if (address == 0xA10018 || address == 0xA10019) {	//	Controller 2 serial control
 			System.out.println("IMPL CONTR 2 !!");
-		} else if (addressL == 0xA1001E || addressL == 0xA1001F) {
+		
+		} else if (address == 0xA1001E || address == 0xA1001F) {	//	Expansion port serial control
 			System.out.println("expansion port serial control !!");
-
-			// --------------------------------------------------------------------
-			// Z80 Bus Request / Reset
-			// --------------------------------------------------------------------
-		} else if (addressL == 0xA11100 || addressL == 0xA11101) {
-			if (data == 0x0100 || data == 0x01) {
+			
+		} else if (addressL == 0xA11100 || addressL == 0xA11101) {	//	Z80 bus request
+			//	To stop the Z80 and send a bus request, #$0100 must be written to $A11100.
+			if (data == 0x0100 || data == 0x1) {
 				z80.requestBus();
 				emu.runZ80 = false;
+				
+			//	 #$0000 needs to be written to $A11100 to return the bus back to the Z80
 			} else if (data == 0x0000) {
 				z80.unrequestBus();
 				if (!z80.reset) {
 					emu.runZ80 = true;
 				}
+				
 			}
-		} else if (addressL == 0xA11200 || addressL == 0xA11201) {
+		} else if (addressL == 0xA11200 || addressL == 0xA11201) {	//	Z80 bus reset
+			//	if the Z80 is required to be reset (for example, to load a new program to it's memory)
+			//	this may be done by writing #$0000 to $A11200, but only when the Z80 bus is requested
 			if (data == 0x0000) {
-				z80.reset();
-				z80.initialize();
-				emu.runZ80 = false;
-			} else if (data == 0x0100 || data == 0x01) {
-				z80.disableReset();
-				if (!z80.busRequested) {
+//				if (z80.busRequested) {
+					z80.reset();
+//				} else {
+					z80.initialize();
+					emu.runZ80 = false;
+//				}
+				
+			//	After returning the bus after loading the new program to it's memory,
+			//	the Z80 may be let go from reset by writing #$0100 to $A11200.
+			} else if (data == 0x0100 || data == 0x1) {
+				if (z80.busRequested) {
+					z80.disableReset();
+
+				} else {
+					z80.disableReset();
+//					z80.initialize();
 					emu.runZ80 = true;
 				}
 			}
-
-			// --------------------------------------------------------------------
-			// SRAM Enable Register
-			// --------------------------------------------------------------------
-		} else if (addressL == 0xA130F1) {
+			
+		} else if (addressL == 0xA130F1) {	//	Sonic 3 will write to this register to enable and disable writing to its save game memory
 			System.out.println("SRAM Register enable: " + Integer.toHexString((int) data));
-			writeSram = (data != 0);
-
-			// --------------------------------------------------------------------
-			// SSF2 Bank Switching
-			// --------------------------------------------------------------------
-		} else if (ssf2Mapper && addressL >= 0xA130F3 && addressL <= 0xA130FF && (addressL & 1) == 1) {
-			int bankNum = (int) ((addressL - 0xA130F3) / 2) + 1;
-			banks[bankNum] = (int) (data & 0x3F);
-
-			// --------------------------------------------------------------------
-			// TMSS
-			// --------------------------------------------------------------------
-		} else if (addressL == 0xA14000) {
+			if (data == 0) {
+				writeSram = false;
+			} else {
+				writeSram = true;
+			}
+			
+		} else if (addressL == 0xA130F3 && ssf2Mapper) {	//	0x080000 - 0x0FFFFF
+			data = data & 0x3F;	//	A page is specified with 6 bits (bits 7 and 6 are always 0) thus allowing a possible 64 pages (SSFII only has 10, though.)
+			banks[1] = (int) data;
+			
+		} else if (addressL == 0xA130F5 && ssf2Mapper) {	//	0x100000 - 0x17FFFF
+			data = data & 0x3F;
+			banks[2] = (int) data;
+			
+		} else if (addressL == 0xA130F7 && ssf2Mapper) {	//	0x180000 - 0x1FFFFF
+			data = data & 0x3F;
+			banks[3] = (int) data;
+			
+		} else if (addressL == 0xA130F9 && ssf2Mapper) {	//	0x200000 - 0x27FFFF
+			data = data & 0x3F;
+			banks[4] = (int) data;
+			
+		} else if (addressL == 0xA130FB && ssf2Mapper) {	//	0x280000 - 0x2FFFFF
+			data = data & 0x3F;
+			banks[5] = (int) data;
+			
+		} else if (addressL == 0xA130FD && ssf2Mapper) {	//	0x300000 - 0x37FFFF
+			data = data & 0x3F;
+			banks[6] = (int) data;
+			
+		} else if (addressL == 0xA130FF && ssf2Mapper) {	//	0x380000 - 0x3FFFFF
+			data = data & 0x3F;
+			banks[7] = (int) data;
+			
+		} else if (address == 0xA14000) {	//	VDP TMSS
 			System.out.println("TMSS: " + Integer.toHexString((int) data));
-
-			// --------------------------------------------------------------------
-			// VDP (Data / Control Ports)
-			// --------------------------------------------------------------------
-		} else if (addressL >= 0xC00000 && addressL <= 0xC00003) {
+			
+		} else if (addressL == 0xC00000 || addressL == 0xC00001
+				|| addressL == 0xC00002 || addressL == 0xC00003) {	// word / long word
 			vdp.writeDataPort((int) data, size);
-		} else if (addressL >= 0xC00004 && addressL <= 0xC00007) {
+			
+		} else if (addressL == 0xC00004 || addressL == 0xC00005
+				|| addressL == 0xC00006 || addressL == 0xC00007) {	// word / long word
 			if (size == Size.BYTE) {
-				throw new RuntimeException("VDP control write with BYTE not allowed");
+				throw new RuntimeException();
 			} else if (size == Size.WORD) {
 				vdp.writeControlPort(data);
 			} else {
@@ -382,230 +417,30 @@ public class GenEmulator {
 				vdp.writeControlPort(data & 0xFFFF);
 			}
 
-			// --------------------------------------------------------------------
-			// PSG (Sound)
-			// --------------------------------------------------------------------
-		} else if (addressL == 0xC00011) {
-			// TODO: Implementar PSG
-			// System.out.println("PSG Output");
-
-			// --------------------------------------------------------------------
-			// Work RAM (0xFF0000 - 0xFFFFFF)
-			// --------------------------------------------------------------------
+		} else if (addressL == 0xC00011) {	//	PSG output
+//			System.out.println("PSG Output");
+			// TODO implement audio		http://md.squee.co/PSG
+			
 		} else if (addressL >= 0xFF0000) {
-			long addr = addressL - 0xFF0000;
-
+			long addr = (addressL & 0xFFFFFF) - 0xFF0000;
+			
 			if (size == Size.BYTE) {
 				memory.writeRam(addr, data);
 			} else if (size == Size.WORD) {
-				memory.writeRam(addr, (data >> 8) & 0xFF);
+				memory.writeRam(addr, (data >> 8));
 				memory.writeRam(addr + 1, (data & 0xFF));
-			} else {
+			} else if (size == Size.LONG) {
 				memory.writeRam(addr, (data >> 24) & 0xFF);
 				memory.writeRam(addr + 1, (data >> 16) & 0xFF);
 				memory.writeRam(addr + 2, (data >> 8) & 0xFF);
 				memory.writeRam(addr + 3, (data & 0xFF));
 			}
-
-			// --------------------------------------------------------------------
-			// Default: endereço não suportado
-			// --------------------------------------------------------------------
+			
 		} else {
-			System.out.println("WRITE NOT SUPPORTED ! " + Integer.toHexString((int) addressL) + " - PC: "
-					+ Integer.toHexString((int) cpu.PC));
+			System.out.println("WRITE NOT SUPPORTED ! " + Integer.toHexString((int) address) + " - PC: " + Integer.toHexString((int) cpu.PC));
+//			throw new RuntimeException("WRITE NOT SUPPORTED ! " + Integer.toHexString((int) address) + " - PC: " + Integer.toHexString((int) cpu.PC));
 		}
 	}
-
-//	https://wiki.megadrive.org/index.php?title=IO_Registers
-//	public void write(long address, long data, Size size) {
-//		long addressL = (address & 0xFF_FFFF);
-//		if (size == Size.BYTE) {
-//			data = data & 0xFF;
-//		} else if (size == Size.WORD) {
-//			data = data & 0xFFFF;
-//		} else {
-//			data = data & 0xFFFF_FFFFL;
-//		}
-//		
-//		if (addressL <= 0x3FFFFF) {	//	Cartridge ROM/RAM
-//			if (addressL >= 0x200000 && address <= 0x20FFFF && writeSram) {
-//				addressL = addressL - 0x200000;
-//				
-//				if (size == Size.BYTE) {
-//					if (address < 0x200) {
-//						sram[(int) addressL] = (int) data;
-//					}
-//					
-//				} else if (size == Size.WORD) {
-//					sram[(int) addressL] = (int) (data >> 8) & 0xFF;
-//					sram[(int) addressL + 1] = (int) data & 0xFF;
-//				} else {
-//					sram[(int) addressL] = (int) (data >> 24) & 0xFF;
-//					sram[(int) addressL + 1] = (int) (data >> 16) & 0xFF;
-//					sram[(int) addressL + 2] = (int) (data >> 8) & 0xFF;
-//					sram[(int) addressL + 3] = (int) data & 0xFF;
-//				}
-//				
-//			} else {
-//				System.out.println("write cart rom ram ? " + Integer.toHexString((int) addressL));
-//			}
-//			
-//		} else if (addressL >= 0xA00000 && addressL <= 0xA0FFFF) {	//	Z80 addressing space
-//			int addr = (int) (address - 0xA00000);
-//			if (size == Size.BYTE) {
-//				z80.writeByte(addr, data);
-//			} else if (size == Size.WORD) {
-//				z80.writeWord(addr, data);
-//			} else {
-//				z80.writeWord(addr, data >> 16);
-//				z80.writeWord(addr + 2, data & 0xFFFF);
-//			}
-//			
-////			System.out.println("Z80: " + pad4(addr) + " " + pad((int) data));
-//			
-//		} else if (address == 0xA10002 || address == 0xA10003) {	//	Controller 1 data
-//			joypad.writeDataRegister1(data);
-//			
-//		} else if (address == 0xA10004 || address == 0xA10005) {	//	Controller 2 data
-//			joypad.writeDataRegister2(data);
-//		
-//		} else if (address == 0xA10006 || address == 0xA10007) {	//	Expansion port data
-//			// ???
-//			
-//		} else if (addressL == 0xA10009) {	//	Controller 1 control
-//			joypad.writeControlRegister1(data);
-//			
-//		} else if (addressL == 0xA1000B) {	//	Controller 2 control
-//			joypad.writeControlRegister2(data);
-//			
-//		} else if (addressL == 0xA1000D) {	//	Controller 2 control
-//			joypad.writeControlRegister3(data);
-//		
-//		} else if (address == 0xA10012 || address == 0xA10013) {	//	Controller 1 serial control
-//			System.out.println("IMPL CONTR 1 !!");
-//			
-//		} else if (address == 0xA10018 || address == 0xA10019) {	//	Controller 2 serial control
-//			System.out.println("IMPL CONTR 2 !!");
-//		
-//		} else if (address == 0xA1001E || address == 0xA1001F) {	//	Expansion port serial control
-//			System.out.println("expansion port serial control !!");
-//			
-//		} else if (addressL == 0xA11100 || addressL == 0xA11101) {	//	Z80 bus request
-//			//	To stop the Z80 and send a bus request, #$0100 must be written to $A11100.
-//			if (data == 0x0100 || data == 0x1) {
-//				z80.requestBus();
-//				emu.runZ80 = false;
-//				
-//			//	 #$0000 needs to be written to $A11100 to return the bus back to the Z80
-//			} else if (data == 0x0000) {
-//				z80.unrequestBus();
-//				if (!z80.reset) {
-//					emu.runZ80 = true;
-//				}
-//				
-//			}
-//		} else if (addressL == 0xA11200 || addressL == 0xA11201) {	//	Z80 bus reset
-//			//	if the Z80 is required to be reset (for example, to load a new program to it's memory)
-//			//	this may be done by writing #$0000 to $A11200, but only when the Z80 bus is requested
-//			if (data == 0x0000) {
-////				if (z80.busRequested) {
-//					z80.reset();
-////				} else {
-//					z80.initialize();
-//					emu.runZ80 = false;
-////				}
-//				
-//			//	After returning the bus after loading the new program to it's memory,
-//			//	the Z80 may be let go from reset by writing #$0100 to $A11200.
-//			} else if (data == 0x0100 || data == 0x1) {
-//				if (z80.busRequested) {
-//					z80.disableReset();
-//
-//				} else {
-//					z80.disableReset();
-////					z80.initialize();
-//					emu.runZ80 = true;
-//				}
-//			}
-//			
-//		} else if (addressL == 0xA130F1) {	//	Sonic 3 will write to this register to enable and disable writing to its save game memory
-//			System.out.println("SRAM Register enable: " + Integer.toHexString((int) data));
-//			if (data == 0) {
-//				writeSram = false;
-//			} else {
-//				writeSram = true;
-//			}
-//			
-//		} else if (addressL == 0xA130F3 && ssf2Mapper) {	//	0x080000 - 0x0FFFFF
-//			data = data & 0x3F;	//	A page is specified with 6 bits (bits 7 and 6 are always 0) thus allowing a possible 64 pages (SSFII only has 10, though.)
-//			banks[1] = (int) data;
-//			
-//		} else if (addressL == 0xA130F5 && ssf2Mapper) {	//	0x100000 - 0x17FFFF
-//			data = data & 0x3F;
-//			banks[2] = (int) data;
-//			
-//		} else if (addressL == 0xA130F7 && ssf2Mapper) {	//	0x180000 - 0x1FFFFF
-//			data = data & 0x3F;
-//			banks[3] = (int) data;
-//			
-//		} else if (addressL == 0xA130F9 && ssf2Mapper) {	//	0x200000 - 0x27FFFF
-//			data = data & 0x3F;
-//			banks[4] = (int) data;
-//			
-//		} else if (addressL == 0xA130FB && ssf2Mapper) {	//	0x280000 - 0x2FFFFF
-//			data = data & 0x3F;
-//			banks[5] = (int) data;
-//			
-//		} else if (addressL == 0xA130FD && ssf2Mapper) {	//	0x300000 - 0x37FFFF
-//			data = data & 0x3F;
-//			banks[6] = (int) data;
-//			
-//		} else if (addressL == 0xA130FF && ssf2Mapper) {	//	0x380000 - 0x3FFFFF
-//			data = data & 0x3F;
-//			banks[7] = (int) data;
-//			
-//		} else if (address == 0xA14000) {	//	VDP TMSS
-//			System.out.println("TMSS: " + Integer.toHexString((int) data));
-//			
-//		} else if (addressL == 0xC00000 || addressL == 0xC00001
-//				|| addressL == 0xC00002 || addressL == 0xC00003) {	// word / long word
-//			vdp.writeDataPort((int) data, size);
-//			
-//		} else if (addressL == 0xC00004 || addressL == 0xC00005
-//				|| addressL == 0xC00006 || addressL == 0xC00007) {	// word / long word
-//			if (size == Size.BYTE) {
-//				throw new RuntimeException();
-//			} else if (size == Size.WORD) {
-//				vdp.writeControlPort(data);
-//			} else {
-//				vdp.writeControlPort(data >> 16);
-//				vdp.writeControlPort(data & 0xFFFF);
-//			}
-//
-//		} else if (addressL == 0xC00011) {	//	PSG output
-////			System.out.println("PSG Output");
-//			// TODO implement audio		http://md.squee.co/PSG
-//			
-//		} else if (addressL >= 0xFF0000) {
-//			long addr = (addressL & 0xFFFFFF) - 0xFF0000;
-//			
-//			if (size == Size.BYTE) {
-//				memory.writeRam(addr, data);
-//			} else if (size == Size.WORD) {
-//				memory.writeRam(addr, (data >> 8));
-//				memory.writeRam(addr + 1, (data & 0xFF));
-//			} else if (size == Size.LONG) {
-//				memory.writeRam(addr, (data >> 24) & 0xFF);
-//				memory.writeRam(addr + 1, (data >> 16) & 0xFF);
-//				memory.writeRam(addr + 2, (data >> 8) & 0xFF);
-//				memory.writeRam(addr + 3, (data & 0xFF));
-//			}
-//			
-//		} else {
-//			System.out.println("WRITE NOT SUPPORTED ! " + Integer.toHexString((int) address) + " - PC: " + Integer.toHexString((int) cpu.PC));
-////			throw new RuntimeException("WRITE NOT SUPPORTED ! " + Integer.toHexString((int) address) + " - PC: " + Integer.toHexString((int) cpu.PC));
-//		}
-//	}
 
 	public final String pad4(long reg) {
 		String s = Long.toHexString(reg).toUpperCase();
