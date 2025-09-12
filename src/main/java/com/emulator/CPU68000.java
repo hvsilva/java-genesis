@@ -15,9 +15,12 @@ import com.emulator.addressing.PCWithDisplacement;
 import com.emulator.addressing.PCWithIndex;
 import com.emulator.instruction.ABCD;
 import com.emulator.instruction.BCC;
+import com.emulator.instruction.BTST;
 import com.emulator.instruction.MOVE;
-import com.emulator.instruction.Operation;
 import com.emulator.instruction.TST;
+
+import com.emulator.instruction.Operation;
+
 
 public class CPU68000 {	
 	
@@ -68,6 +71,7 @@ public class CPU68000 {
     	new MOVE(this).generate();
     	new TST(this).generate();
     	new BCC(this).generate();
+    	new BTST(this).generate();
     }
     
     /** Reset realista (SP e PC vêm da ROM) */
@@ -283,11 +287,11 @@ public class CPU68000 {
 	}
 
 	public void clearZ() {
-		flagZ = false;
+		SR = bitReset(SR, 2);
 	}
 
 	public void setZ() {
-		flagZ = true;
+		SR = bitSet(SR, 2);
 	}
 	
 	public void setN() {

@@ -2,6 +2,8 @@ package com.emulator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.swing.SwingUtilities;
+
 public class Emulator {
 
 	private final CPU68000 cpu;
@@ -73,11 +75,11 @@ public class Emulator {
                     vdp.dmaFill();
                     vdp.dmaFill();
                     
-                    // gera o frame
-//                    vdp.renderFrame();
-
-                    // desenha (thread-safe: chama Swing no EDT)
-//                    video.draw(vdp.getFrameBuffer());
+                    vdp.setFrameReadyCallback(() -> {
+                        SwingUtilities.invokeLater(() -> {
+                            video.draw(vdp.getFrameBuffer());
+                        });
+                    });
 
                 }
             }

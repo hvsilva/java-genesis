@@ -1,5 +1,8 @@
 package com.emulator;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class VDP {
 	public static final int WIDTH = 320;
     public static final int HEIGHT = 224;
@@ -54,8 +57,7 @@ public class VDP {
 	// HV Counter Latch
 	boolean m2;
 	// External Sync
-	boolean es;
-	
+	boolean es;	
 	// REG 1
 	// Extended VRAM
 	boolean evram;
@@ -146,76 +148,70 @@ public class VDP {
 
 	int line;
 	
-//	Emulator bus;
+    // Aqui declaramos a lista de sprites
+    private final List<Sprite> sprites = new ArrayList<>();
 	
-//	public VDP(Emulator bus) {			
-//		this.bus = bus;		
-//	}
+	private Runnable frameReadyCallback;
 
+	/**
+	 * Simula execução do VDP por um certo número de ciclos.
+	 */
+	public void run(int cycles) {
+		totalCycles += cycles;
 
-    /**
-     * Simula execução do VDP por um certo número de ciclos.
-     */
-    public void run(int cycles) {
-        totalCycles += cycles;
-        
-//        System.out.println("[registers] : " + registers[1]);      
-      
-        if (totalCycles < 800) {
-            hblank = false;
-        } else if (totalCycles >= 800 && totalCycles <= 982) {
-            hblank = true;
-        } else if (totalCycles > 982) {
-            // Execução ao fim da linha
-            if ((registers[1] & 0x40) != 0) { // bit de display enable
-                if (line < 0xE0) { // 224 linhas visíveis
-                    spritesLine = 0;
+		System.out.println("[registers] : " + registers[1]);
 
-                    renderBackground(line);
-                    renderPlaneA(line);
-                    renderPlaneB(line);
-                    renderWindow(line);
-                    renderSprites(line);
-                }
-            }
+		if (totalCycles < 800) {
+			hblank = false;
+		} else if (totalCycles >= 800 && totalCycles <= 982) {
+			hblank = true;
+		} else if (totalCycles > 982) {
+			// Fim da linha
+			if ((registers[1] & 0x40) != 0) { // Display Enable
+				if (line < 0xE0) { // 224 linhas visíveis
+					spritesLine = 0;
 
-            // Geração de interrupção H (HINT)
-            if (line < 0xE0) {
-//                bus.hLinesPassed--;
-//                if (bus.hLinesPassed == -1) {
-//                    bus.hintPending = true;
-//                    bus.hLinesPassed = registers[0xA];
-//                }
-            }
+					// Renderização direta linha a linha
+					renderBackground(line);
+					renderPlaneA(line);
+					renderPlaneB(line);
+					renderWindow(line);
+					renderSprites(line);
+				}
+			}
 
-            line++;
-            totalCycles = 0;
-            hblank = false;
-        }
+			// Avança para a próxima linha
+			line++;
+			totalCycles = 0;
+			hblank = false;
+		}
 
-        // Reinício do quadro
-        if (line > 0xFF) { // passou das 262 linhas
-            line = 0;
-            evaluateSprites();
-//            bus.hLinesPassed = registers[0xA];
-        }
+		// Fim do quadro (262 linhas)
+		if (line > 0xFF) {
+			line = 0;
+			evaluateSprites(); // prepara sprites para o próximo quadro
+		}
 
-        // VBlank (fim do frame visível)
-        if (line == 0xE0 && totalCycles == 0) {
-            vblank = true;
-            vip = 1;
+		// VBlank (início em linha 224)
+		if (line == 0xE0 && totalCycles == 0) {
+			vblank = true;
+			vip = 1;
+			spritesFrame = 0;
 
-            spritesFrame = 0;
-
-            if ((registers[1] & 0x40) != 0) { // se display ativo
-                compaginateImage(); // organiza o framebuffer final
-//                bus.emu.renderScreen(); // chama o emulador para desenhar na tela
-            }
-        } else if (line < 0xE0 && ((registers[1] & 0x40) != 0)) {
-            vblank = false; // durante linhas visíveis
-        }
-    }
-
+			// Se display estiver ativo, dispara callback para o emulador
+			if ((registers[1] & 0x40) != 0) {
+				if (frameReadyCallback != null) {
+					frameReadyCallback.run();
+				}
+			}
+		} else if (line < 0xE0 && ((registers[1] & 0x40) != 0)) {
+			vblank = false; // ainda dentro da região visível
+		}
+	}
+	
+	public void setFrameReadyCallback(Runnable cb) {
+	    this.frameReadyCallback = cb;
+	}
     
     // Primeiro render: só pinta a tela com a cor 0 da CRAM
     public void renderFrame() {
@@ -234,85 +230,266 @@ public class VDP {
     }
     
     /**
+     * Junta todas as camadas em um único framebuffer (um frame inteiro).
+     */
+//    private void compaginateImage() {
+//        // limpa com a cor de fundo
+//        int baseColor = cramToArgb(cram[0] & 0xFFFF);
+//        for (int i = 0; i < framebuffer.length; i++) {
+//            framebuffer[i] = baseColor;
+//        }
+//
+//        // Renderiza camada por camada
+//        for (int line = 0; line < HEIGHT; line++) {
+//            renderBackground(line);
+//            renderPlaneB(line);
+//            renderPlaneA(line);
+//            renderWindow(line);
+//            renderSprites(line);
+//        }
+//    }
+
+    /**
+     * Renderiza o plano de fundo (background) para a linha 'y'.
+     */
+    private void renderBackground(int y) {
+        // Pega a cor de fundo (border color) do CRAM, definida pelo registrador 0.
+        int colorIndex = registers[0] & 0x3F;
+        // Chama o método com o índice da cor e a paleta 0
+        int backgroundColor = decodeColorARGB(colorIndex, 0); 
+        for (int x = 0; x < WIDTH; x++) {
+            framebuffer[y * WIDTH + x] = backgroundColor;
+        }
+    }    
+    
+    /**
+     * Renderiza o plano A para a linha 'y', sobrepondo o plano B.
+     * A lógica é similar ao plano B, mas com endereços e prioridades diferentes.
+     */
+    private void renderPlaneA(int y) {
+        // Endereço do 'Name Table' (mapa de tiles) do plano A
+        int ntAddress = (registers[3] & 0x38) << 10;
+        
+        int tileY = y / 8;
+        int tileLine = y % 8;
+
+        for (int x = 0; x < WIDTH; x++) {
+            int tileX = x / 8;
+            int pixelX = x % 8;
+
+            int tileIndex = (tileY * 64 + tileX) * 2;
+            int tileInfo = vram[ntAddress + tileIndex] | (vram[ntAddress + tileIndex + 1] << 8);
+
+            int tileNumber = tileInfo & 0x7FF;
+            int palette = (tileInfo >> 13) & 0x7;
+            boolean hFlip = ((tileInfo >> 11) & 1) == 1;
+
+            if (hFlip) {
+                pixelX = 7 - pixelX;
+            }
+
+            int tileDataAddress = tileNumber * 32 + (tileLine * 4) + (pixelX / 2);
+            int tileData = vram[tileDataAddress];
+
+            int colorIndex;
+            if (pixelX % 2 == 0) {
+                colorIndex = (tileData >> 4) & 0xF;
+            } else {
+                colorIndex = tileData & 0xF;
+            }
+
+            if (colorIndex != 0) {
+                framebuffer[y * WIDTH + x] = decodeColorARGB(colorIndex, palette);
+            }
+        }
+    }
+    
+    /**
+     * Renderiza o plano B para a linha 'y'.
+     * A lógica para desenhar os tiles a partir da VRAM precisa ser implementada aqui.
+     */
+    private void renderPlaneB(int y) {
+        // Endereço do 'Name Table' (mapa de tiles) do plano B
+        int ntAddress = (registers[2] & 0x38) << 10;
+        
+        // As coordenadas Y do tile na tela
+        int tileY = y / 8;
+        
+        // Deslocamento da linha do tile, dentro do tile
+        int tileLine = y % 8;
+
+        for (int x = 0; x < WIDTH; x++) {
+            // As coordenadas X do tile na tela
+            int tileX = x / 8;
+            int pixelX = x % 8;
+
+            // Pega o índice do tile e os atributos
+            int tileIndex = (tileY * 64 + tileX) * 2; // O mapa tem 64 colunas
+            int tileInfo = vram[ntAddress + tileIndex] | (vram[ntAddress + tileIndex + 1] << 8);
+
+            int tileNumber = tileInfo & 0x7FF;
+            int palette = (tileInfo >> 13) & 0x7;
+            boolean hFlip = ((tileInfo >> 11) & 1) == 1;
+
+            if (hFlip) {
+                pixelX = 7 - pixelX;
+            }
+
+            // Pega o dado do tile na VRAM
+            int tileDataAddress = tileNumber * 32 + (tileLine * 4) + (pixelX / 2);
+            int tileData = vram[tileDataAddress];
+
+            int colorIndex;
+            if (pixelX % 2 == 0) {
+                colorIndex = (tileData >> 4) & 0xF;
+            } else {
+                colorIndex = tileData & 0xF;
+            }
+
+            if (colorIndex != 0) {
+                framebuffer[y * WIDTH + x] = decodeColorARGB(colorIndex, palette);
+            }
+        }
+    }    
+    
+    /**
      * Renderiza a camada Window (se ativa) para a linha atual.
      */
-    private void renderWindow(int line) {
-        // Display desligado → não renderiza nada
-        if ((registers[1] & 0x40) == 0) return;
+    private void renderWindow(int y) {
+    	 // Registradores do VDP (valores dependem do mapeamento real)
+        int winHPos = registers[17]; // posição X da janela
+        int winVPos = registers[18]; // posição Y da janela
 
-        // Posição do Window (em tiles de 8px, multiplicado por 8 → pixels)
-        int windowX = (registers[0x11] & 0x1F) * 8;
-        int windowY = (registers[0x12] & 0x1F) * 8;
+        if (y < winVPos) return; // ainda não alcançou a janela vertical
 
-        // Verifica se a linha atual está dentro da região vertical do Window
-        if (line < windowY || line >= HEIGHT) return;
+        int ntAddress = (registers[3] & 0x3C) << 10; // base da name table da window
+        int tileY = (y - winVPos) / 8;
+        int tileLine = (y - winVPos) % 8;
 
-        // Aqui substituímos o Plane A pela área de Window
-        for (int x = windowX; x < WIDTH; x++) {
-            int index = line * WIDTH + x;
+        for (int x = winHPos; x < WIDTH; x++) {
+            int tileX = (x - winHPos) / 8;
+            int pixelX = (x - winHPos) % 8;
 
-            // Didático: cor fixa azul para o Window
-            framebuffer[index] = 0xFF0000FF; // ARGB (azul sólido)
+            int tileIndex = (tileY * 64 + tileX) * 2;
+            int tileInfo = vram[ntAddress + tileIndex] | (vram[ntAddress + tileIndex + 1] << 8);
+
+            int tileNumber = tileInfo & 0x7FF;
+            int palette = (tileInfo >> 13) & 0x7;
+            boolean hFlip = ((tileInfo >> 11) & 1) == 1;
+
+            if (hFlip) {
+                pixelX = 7 - pixelX;
+            }
+
+            int tileDataAddress = tileNumber * 32 + (tileLine * 4) + (pixelX / 2);
+            int tileData = vram[tileDataAddress];
+
+            int colorIndex = (pixelX % 2 == 0) ? (tileData >> 4) & 0xF : tileData & 0xF;
+
+            if (colorIndex != 0) {
+                framebuffer[y * WIDTH + x] = decodeColorARGB(colorIndex, palette);
+            }
         }
+    }
 
-        // Mais tarde: aqui você chamará renderTilemapLine(windowBase, line, windowX, true);
+
+    /**
+     * Renderiza os sprites para a linha 'y', sobrepondo os planos A e B.
+     * A lógica para desenhar os sprites a partir da VSRAM e VRAM precisa ser implementada aqui.
+     */
+    private void renderSprites(int y) {
+    	    List<Sprite> visible = spritesOnLine(line);
+
+    	    for (Sprite s : sprites) {
+    	        int sy = line - s.y;
+    	        if (sy < 0 || sy >= s.height * 8) continue; // fora do sprite
+
+    	        for (int sx = 0; sx < s.width * 8; sx++) {
+    	            int color = s.getPixel(sx, sy, vram, cram);
+    	            if (color != -1) {
+    	                int px = s.x + sx;
+    	                if (px >= 0 && px < WIDTH) {
+    	                    framebuffer[line * WIDTH + px] = color;
+    	                }
+    	            }
+    	        }
+    	    }
+    }
+    
+	/**
+	 * Retorna os sprites que aparecem na linha 'line'.
+	 */
+	private List<Sprite> spritesOnLine(int line) {
+		List<Sprite> result = new ArrayList<>();
+		for (Sprite s : sprites) {
+			int top = s.y;
+			int bottom = s.y + s.height * 8;
+
+			if (line >= top && line < bottom) {
+				result.add(s);
+			}
+		}
+		return result;
+	}
+    
+//    private int planePriorityAt(int x, int y) {
+//        // Lê o atributo de prioridade do plano A/B na posição
+//        // Retorna 0 = baixa, 1 = alta
+//        int tileInfo = getTileInfoAt(x, y); 
+//        return (tileInfo >> 15) & 1; // bit de prioridade
+//    }
+    
+    private int getTileInfoAt(int x, int y) {
+        // Exemplo simples: lê só do plano A
+        int ntAddress = (registers[3] & 0x38) << 10;
+
+        int tileX = x / 8;
+        int tileY = y / 8;
+        int tileIndex = (tileY * 64 + tileX) * 2;
+
+        return vram[ntAddress + tileIndex] | (vram[ntAddress + tileIndex + 1] << 8);
     }
     
     /**
      * Avalia os sprites na VRAM e prepara para o próximo frame.
      */
     private void evaluateSprites() {
-        spritesFrame = 0; // zera contador do frame
+    	sprites.clear();
 
-        // Didático: gera 10 sprites de teste em posições diferentes
-//        for (int i = 0; i < 10; i++) {
-//            Sprite s = new Sprite();
-//            s.x = 16 + i * 24;
-//            s.y = 32 + i * 16;
-//            s.color = 0xFFFFFF00; // amarelo
-//            s.priority = 0;
-//            sprites[spritesFrame++] = s;
-//        }
+        // endereço base da tabela de sprites
+        int satAddress = (registers[5] & 0x7E) << 7;
 
-        // Mais tarde: aqui você vai ler a Sprite Attribute Table da VRAM
-        // e carregar os dados reais (Y, link, tile index, X, atributos).
+        for (int i = 0; i < 80; i++) { // 80 sprites possíveis
+            int entryAddr = satAddress + i * 8;
+
+            int y = vram[entryAddr] & 0xFF;
+            int size = vram[entryAddr + 1] & 0xFF;
+            int tileIndex = vram[entryAddr + 2] | (vram[entryAddr + 3] << 8);
+            int x = vram[entryAddr + 6] | ((vram[entryAddr + 7] & 1) << 8);
+
+            // simplificado: assume 1x1 tile
+            sprites.add(new Sprite(x, y, tileIndex, 1, 1, 0, false, false, 0));
+        }
     }
-    
+
     /**
-     * Junta todas as camadas em um único framebuffer (um frame inteiro).
+     * Decodifica o índice de cor usando a paleta correta.
      */
-    private void compaginateImage() {
-        // limpa com a cor de fundo
-        int baseColor = cramToArgb(cram[0] & 0xFFFF);
-        for (int i = 0; i < framebuffer.length; i++) {
-            framebuffer[i] = baseColor;
-        }
+    private int decodeColorARGB(int colorIndex, int palette) {
+        int cramAddress = (palette * 16) + colorIndex;
+        int value = cram[cramAddress] & 0xFFFF;
 
-        // Renderiza camada por camada
-        for (int line = 0; line < HEIGHT; line++) {
-            renderBackground(line);
-            renderPlaneB(line);
-            renderPlaneA(line);
-            renderWindow(line);
-            renderSprites(line);
-        }
+        int r = (value & 0x000E) >> 1;  // 3 bits
+        int g = (value & 0x00E0) >> 5;  // 3 bits
+        int b = (value & 0x0E00) >> 9;  // 3 bits
+
+        r = (r * 255) / 7;
+        g = (g * 255) / 7;
+        b = (b * 255) / 7;
+
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
-	
- 
-//    /** Renderiza quadro completo */
-//    public void renderFrame() {
-//        for (int y = 0; y < HEIGHT; y++) {
-//            renderScanline(y);
-//        }
-//    }
-//    
-//    /** Preenche scanline (exemplo: gradiente) */
-//    public void renderScanline(int y) {
-//        for (int x = 0; x < WIDTH; x++) {
-//            framebuffer[y * WIDTH + x] = 0xFF000000 | ((x * 255 / WIDTH) << 16) | ((y * 255 / HEIGHT) << 8); // gradiente
-//        }
-//    }	
-    
+
 	void init() {
 		empty = 1;
 		vb = 1;
@@ -588,137 +765,6 @@ public class VDP {
         }
     }
 
-    /**
-     * Renderiza o plano de fundo (background) para a linha 'y'.
-     */
-    private void renderBackground(int y) {
-        // Pega a cor de fundo (border color) do CRAM, definida pelo registrador 0.
-        int colorIndex = registers[0] & 0x3F;
-        // Chama o método com o índice da cor e a paleta 0
-        int backgroundColor = decodeColorARGB(colorIndex, 0); 
-        for (int x = 0; x < WIDTH; x++) {
-            framebuffer[y * WIDTH + x] = backgroundColor;
-        }
-    }
-    
-    /**
-     * Renderiza o plano B para a linha 'y'.
-     * A lógica para desenhar os tiles a partir da VRAM precisa ser implementada aqui.
-     */
-    private void renderPlaneB(int y) {
-        // Endereço do 'Name Table' (mapa de tiles) do plano B
-        int ntAddress = (registers[2] & 0x38) << 10;
-        
-        // As coordenadas Y do tile na tela
-        int tileY = y / 8;
-        
-        // Deslocamento da linha do tile, dentro do tile
-        int tileLine = y % 8;
-
-        for (int x = 0; x < WIDTH; x++) {
-            // As coordenadas X do tile na tela
-            int tileX = x / 8;
-            int pixelX = x % 8;
-
-            // Pega o índice do tile e os atributos
-            int tileIndex = (tileY * 64 + tileX) * 2; // O mapa tem 64 colunas
-            int tileInfo = vram[ntAddress + tileIndex] | (vram[ntAddress + tileIndex + 1] << 8);
-
-            int tileNumber = tileInfo & 0x7FF;
-            int palette = (tileInfo >> 13) & 0x7;
-            boolean hFlip = ((tileInfo >> 11) & 1) == 1;
-
-            if (hFlip) {
-                pixelX = 7 - pixelX;
-            }
-
-            // Pega o dado do tile na VRAM
-            int tileDataAddress = tileNumber * 32 + (tileLine * 4) + (pixelX / 2);
-            int tileData = vram[tileDataAddress];
-
-            int colorIndex;
-            if (pixelX % 2 == 0) {
-                colorIndex = (tileData >> 4) & 0xF;
-            } else {
-                colorIndex = tileData & 0xF;
-            }
-
-            if (colorIndex != 0) {
-                framebuffer[y * WIDTH + x] = decodeColorARGB(colorIndex, palette);
-            }
-        }
-    }
-    
-    /**
-     * Renderiza o plano A para a linha 'y', sobrepondo o plano B.
-     * A lógica é similar ao plano B, mas com endereços e prioridades diferentes.
-     */
-    private void renderPlaneA(int y) {
-        // Endereço do 'Name Table' (mapa de tiles) do plano A
-        int ntAddress = (registers[3] & 0x38) << 10;
-        
-        int tileY = y / 8;
-        int tileLine = y % 8;
-
-        for (int x = 0; x < WIDTH; x++) {
-            int tileX = x / 8;
-            int pixelX = x % 8;
-
-            int tileIndex = (tileY * 64 + tileX) * 2;
-            int tileInfo = vram[ntAddress + tileIndex] | (vram[ntAddress + tileIndex + 1] << 8);
-
-            int tileNumber = tileInfo & 0x7FF;
-            int palette = (tileInfo >> 13) & 0x7;
-            boolean hFlip = ((tileInfo >> 11) & 1) == 1;
-
-            if (hFlip) {
-                pixelX = 7 - pixelX;
-            }
-
-            int tileDataAddress = tileNumber * 32 + (tileLine * 4) + (pixelX / 2);
-            int tileData = vram[tileDataAddress];
-
-            int colorIndex;
-            if (pixelX % 2 == 0) {
-                colorIndex = (tileData >> 4) & 0xF;
-            } else {
-                colorIndex = tileData & 0xF;
-            }
-
-            if (colorIndex != 0) {
-                framebuffer[y * WIDTH + x] = decodeColorARGB(colorIndex, palette);
-            }
-        }
-    }
-
-    /**
-     * Renderiza os sprites para a linha 'y', sobrepondo os planos A e B.
-     * A lógica para desenhar os sprites a partir da VSRAM e VRAM precisa ser implementada aqui.
-     */
-    private void renderSprites(int y) {
-        // Lógica simplificada:
-        // Percorre a VSRAM para encontrar sprites que intersectam a linha 'y'
-        // Decodifica a posição, tamanho, tile e atributos
-        // Desenha os pixels no framebuffer
-    }
-
-    /**
-     * Decodifica o índice de cor usando a paleta correta.
-     */
-    private int decodeColorARGB(int colorIndex, int palette) {
-        int cramAddress = (palette * 16) + colorIndex;
-        int value = cram[cramAddress] & 0xFFFF;
-
-        int r = (value & 0x000E) >> 1;  // 3 bits
-        int g = (value & 0x00E0) >> 5;  // 3 bits
-        int b = (value & 0x0E00) >> 9;  // 3 bits
-
-        r = (r * 255) / 7;
-        g = (g * 255) / 7;
-        b = (b * 255) / 7;
-
-        return 0xFF000000 | (r << 16) | (g << 8) | b;
-    }
 
     
     public void dmaFill() {
@@ -839,7 +885,6 @@ public class VDP {
 
 		return control;
 	}	
-
 	
 	private long readVram(Size size) {
 		int index = nextFIFOReadEntry;
