@@ -14,12 +14,19 @@ import com.emulator.addressing.ImmediateData;
 import com.emulator.addressing.PCWithDisplacement;
 import com.emulator.addressing.PCWithIndex;
 import com.emulator.instruction.ABCD;
+import com.emulator.instruction.ADDQ;
+import com.emulator.instruction.ANDI;
+import com.emulator.instruction.ANDI_CCR;
+import com.emulator.instruction.ANDI_SR;
 import com.emulator.instruction.BCC;
 import com.emulator.instruction.BTST;
+import com.emulator.instruction.CMPI;
+import com.emulator.instruction.DBcc;
+import com.emulator.instruction.LEA;
 import com.emulator.instruction.MOVE;
-import com.emulator.instruction.TST;
-
 import com.emulator.instruction.Operation;
+import com.emulator.instruction.SUBQ;
+import com.emulator.instruction.TST;
 
 
 public class CPU68000 {	
@@ -61,7 +68,7 @@ public class CPU68000 {
             new PCWithDisplacement(this),                  // 7, reg=2
             new PCWithIndex(this),                         // 7, reg=3
             new ImmediateData(this)                        // 7, reg=4 (normalmente só fonte)
-            // Para reg=5 ou reg=6, pode ser modos reservados ou especiais, adicione se necessário!
+                                                           // Para reg=5 ou reg=6, pode ser modos reservados ou especiais, adicione se necessário!
             };
     }
     
@@ -72,6 +79,15 @@ public class CPU68000 {
     	new TST(this).generate();
     	new BCC(this).generate();
     	new BTST(this).generate();
+    	new ANDI(this).generate();
+    	new ANDI_CCR(this).generate();
+    	new ANDI_SR(this).generate();
+    	new LEA(this).generate();
+    	new CMPI(this).generate();
+    	new ADDQ(this).generate();
+    	new SUBQ(this).generate();
+    	new DBcc(this).generate();
+    	
     }
     
     /** Reset realista (SP e PC vêm da ROM) */
@@ -98,10 +114,10 @@ public class CPU68000 {
 	}
 	
     /** Executa uma instrução e retorna ciclos gastos */
-    public int runInstruction(boolean print) {
+    public int runInstruction(boolean print) {    	
+    	
     	// Busca o opcode da memória (bus) na posição do PC (Program Counter)
-    	long opcode = memory.read(PC, Size.WORD); 
-		
+    	long opcode = memory.read(PC, Size.WORD); 		
 
         GenInstruction instr = instructions[(int) opcode];
         
@@ -109,20 +125,16 @@ public class CPU68000 {
 			StringBuilder sb = new StringBuilder();			
 			printDebug(opcode, sb);
 			System.out.println(sb.toString()); // Imprime estado se solicitado
-		}
-        
+		}        
         
         int cycles = 0;
         if (instr != null) {
         	
-        	System.out.println("[Instruction]:" + instr);
-//          System.err.printf("Opcode %04X não implementado em PC=%08X%n [Instruction]: %s%n", opcode, PC, instr);
-        	
+        	System.out.println("[Instruction]:" + instr);    	
         	
             instr.run((int) opcode);  
             
-            PC = (PC + 2) & 0xFFFFFF;
-    
+            PC = (PC + 2) & 0xFFFFFF;    
             
 //            dumpState((int) opcode);   
 //            cycles = instr.getCycles(opcode); 
