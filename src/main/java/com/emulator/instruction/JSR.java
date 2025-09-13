@@ -74,6 +74,11 @@ public class JSR implements GenInstructionHandler {
 			public void run(int opcode) {
 				JumpSR(opcode);
 			}
+			
+			@Override
+			public String toString() {
+				return "JUMPSR";
+			}
 		};
 		
 		for (int m = 0; m < 8; m++) {
@@ -124,6 +129,11 @@ public class JSR implements GenInstructionHandler {
 		}
 		
 		cpu.PC = newPC - 2;
+	}
+	
+	@Override
+	public String toString() {
+		return "JSR";
 	}
 
 }

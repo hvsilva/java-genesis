@@ -62,11 +62,21 @@ public class BCC implements GenInstructionHandler {
 			public void run(int opcode) {
 				bccByte(opcode);
 			}
+			
+			@Override
+			public String toString() {
+				return "BCC.BYTE";
+			}
 		};
 		GenInstruction insW = new GenInstruction() {
 			@Override
 			public void run(int opcode) {
 				bccWord(opcode);
+			}
+			
+			@Override
+			public String toString() {
+				return "BCC.WORD";
 			}
 		};
 		for (int cc = 0; cc < 16; cc++) {
@@ -114,6 +124,5 @@ public class BCC implements GenInstructionHandler {
 		} else {
 			cpu.PC += 2;
 		}
-	}
-	
+	}	
 }

@@ -84,6 +84,11 @@ public class TST implements GenInstructionHandler {
 					public void run(int opcode) {
 						TSTByte(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "TST.BYTE";
+					}
 				};
 				
 			} else if (s == 0b01) {
@@ -92,6 +97,11 @@ public class TST implements GenInstructionHandler {
 					public void run(int opcode) {
 						TSTWord(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "TST.WORD";
+					}
 				};
 				
 			} else if (s == 0b10) {
@@ -99,6 +109,11 @@ public class TST implements GenInstructionHandler {
 					@Override
 					public void run(int opcode) {
 						TSTLong(opcode);
+					}
+					
+					@Override
+					public String toString() {
+						return "TST.LONG";
 					}
 				};
 			}
@@ -164,6 +179,5 @@ public class TST implements GenInstructionHandler {
 		
 		cpu.clearV();
 		cpu.clearC();
-	}
-	
+	}	
 }

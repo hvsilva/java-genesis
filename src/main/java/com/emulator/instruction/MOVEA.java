@@ -84,6 +84,11 @@ public class MOVEA implements GenInstructionHandler {
 					public void run(int opcode) {
 						MOVEAWord(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "MOVE.WORD";
+					}
 				};
 			} else if (s == 0b10) {
 				
@@ -91,6 +96,11 @@ public class MOVEA implements GenInstructionHandler {
 					@Override
 					public void run(int opcode) {
 						MOVEALong(opcode);
+					}
+					
+					@Override
+					public String toString() {
+						return "MOVE.LONG";
 					}
 				};
 			}
@@ -132,6 +142,11 @@ public class MOVEA implements GenInstructionHandler {
 		long data = o.getAddressingMode().getLong(o);
 		
 		cpu.setALong(addrReg, data);
+	}
+	
+	@Override
+	public String toString() {
+		return "MOVEA";
 	}
 	
 }

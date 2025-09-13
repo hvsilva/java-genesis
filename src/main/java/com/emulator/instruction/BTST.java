@@ -128,11 +128,22 @@ public class BTST implements GenInstructionHandler {
 			public void run(int opcode) {
 				BTSTRegisterByte(opcode);
 			}
+			
+			@Override
+			public String toString() {
+				return "BTST.BYTE";
+			}
+			
 		};
 		GenInstruction insLong = new GenInstruction() {
 			@Override
 			public void run(int opcode) {
 				BTSTRegisterLong(opcode);
+			}
+			
+			@Override
+			public String toString() {
+				return "BTST.LONG";
 			}
 		};
 		
@@ -260,5 +271,4 @@ public class BTST implements GenInstructionHandler {
 			cpu.setZ();
 		}
 	}
-	
 }

@@ -51,6 +51,11 @@ public class MOVEQ implements GenInstructionHandler {
 			public void run(int opcode) {
 				MOVEQLong(opcode);
 			}
+			
+			@Override
+			public String toString() {
+				return "MOVE.LONG";
+			}
 		};
 		for (int r = 0; r < 8; r++) {
 			for (int immData = 0; immData < 256; immData++) {
@@ -88,5 +93,4 @@ public class MOVEQ implements GenInstructionHandler {
 		cpu.clearV();
 		cpu.clearC();
 	}
-
 }

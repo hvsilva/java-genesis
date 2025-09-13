@@ -40,6 +40,9 @@ public class GenEmulator {
 	}
 
 	public long read(long address, Size size) {
+		
+		System.out.println("[CALL READ]: " + Long.toHexString(address) + " - " + size);		
+		
 		address = address & 0xFF_FFFF; // o mapa de memória 
 		long data;
 
@@ -253,6 +256,10 @@ public class GenEmulator {
 
 //	https://wiki.megadrive.org/index.php?title=IO_Registers
 	public void write(long address, long data, Size size) {
+		
+		System.out.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));			
+		
+		
 		long addressL = (address & 0xFF_FFFF);
 		if (size == Size.BYTE) {
 			data = data & 0xFF;
@@ -411,6 +418,7 @@ public class GenEmulator {
 			if (size == Size.BYTE) {
 				throw new RuntimeException();
 			} else if (size == Size.WORD) {
+				System.out.println("[ENDERECO] : " + Long.toHexString(addressL));
 				vdp.writeControlPort(data);
 			} else {
 				vdp.writeControlPort(data >> 16);

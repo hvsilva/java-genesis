@@ -27,7 +27,14 @@ public class Emulator {
         this.memory = memory;
         this.cpu = new CPU68000(memory);
         this.vdp = new VDP();
-        this.video = new Video(VDP.WIDTH, VDP.HEIGHT);
+        this.video = new Video(VDP.WIDTH, VDP.HEIGHT);       
+        
+        vdp.setFrameReadyCallback(() -> {
+            SwingUtilities.invokeLater(() -> {
+                video.draw(vdp.getFrameBuffer());
+            });
+        });
+
       
     }
     
@@ -74,13 +81,7 @@ public class Emulator {
                     // DMA do VDP (pode rodar mais de uma vez por ciclo)
                     vdp.dmaFill();
                     vdp.dmaFill();
-                    
-                    vdp.setFrameReadyCallback(() -> {
-                        SwingUtilities.invokeLater(() -> {
-                            video.draw(vdp.getFrameBuffer());
-                        });
-                    });
-
+ 
                 }
             }
         } catch (RuntimeException e) {

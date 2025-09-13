@@ -115,7 +115,7 @@ public class CPU68000 {
         int cycles = 0;
         if (instr != null) {
         	
-//        	System.out.printf("[Instruction]: %s%n", instr);
+        	System.out.println("[Instruction]:" + instr);
 //          System.err.printf("Opcode %04X não implementado em PC=%08X%n [Instruction]: %s%n", opcode, PC, instr);
         	
         	

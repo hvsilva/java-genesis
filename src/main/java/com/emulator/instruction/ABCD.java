@@ -75,6 +75,11 @@ public class ABCD implements GenInstructionHandler {
 			public void run(int opcode) {
 				ABCDDataByte(opcode);
 			}
+			
+			@Override
+			public String toString() {
+				return "ABCD.BYTE";
+			}
 
 //			@Override
 //			public int getCycles(int opcode) {
@@ -98,6 +103,11 @@ public class ABCD implements GenInstructionHandler {
 			@Override
 			public void run(int opcode) {
 				ABCDAddressByte(opcode);
+			}
+			
+			@Override
+			public String toString() {
+				return "ABCD.BYTE";
 			}
 
 //			@Override
@@ -184,5 +194,4 @@ public class ABCD implements GenInstructionHandler {
 
 		return result;
 	}
-
 }

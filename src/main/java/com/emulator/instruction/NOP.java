@@ -42,6 +42,11 @@ public class NOP implements GenInstructionHandler {
 			public void run(int opcode) {
 				NOPop(opcode);
 			}
+			
+			@Override
+			public String toString() {
+				return "NOPOP";
+			}
 		};
 		
 		cpu.addInstruction(base, ins);
@@ -49,6 +54,11 @@ public class NOP implements GenInstructionHandler {
 	
 	private void NOPop(int opcode) {
 		// TODO sincronizar pipelines
+	}
+	
+	@Override
+	public String toString() {
+		return "NOP";
 	}
 
 }

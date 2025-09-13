@@ -110,6 +110,11 @@ public class MOVE implements GenInstructionHandler {
 					public void run(int opcode) {
 						MOVEByte(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "MOVE.BYTE";
+					}
 				};
 			} else if (s == 0b11) {
 				ins = new GenInstruction() {
@@ -118,6 +123,11 @@ public class MOVE implements GenInstructionHandler {
 					public void run(int opcode) {
 						MOVEWord(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "MOVE.WORD";
+					}
 				};
 			} else if (s == 0b10) {
 				ins = new GenInstruction() {
@@ -125,6 +135,11 @@ public class MOVE implements GenInstructionHandler {
 					@Override
 					public void run(int opcode) {
 						MOVELong(opcode);
+					}
+					
+					@Override
+					public String toString() {
+						return "MOVE.LONG";
 					}
 				};
 			}

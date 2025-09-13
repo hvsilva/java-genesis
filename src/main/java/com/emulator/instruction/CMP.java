@@ -84,6 +84,11 @@ public class CMP implements GenInstructionHandler {
 					public void run(int opcode) {
 						CMPByte(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "CMP.BYTE";
+					}
 				};
 			} else if (opMode == 0b001) {
 				ins = new GenInstruction() {
@@ -91,12 +96,22 @@ public class CMP implements GenInstructionHandler {
 					public void run(int opcode) {
 						CMPWord(opcode);
 					}
+					
+					@Override
+					public String toString() {
+						return "CMP.WORD";
+					}
 				};
 			} else if (opMode == 0b010) {
 				ins = new GenInstruction() {
 					@Override
 					public void run(int opcode) {
 						CMPLong(opcode);
+					}
+					
+					@Override
+					public String toString() {
+						return "CMP.LONG";
 					}
 				};
 			}
@@ -220,4 +235,8 @@ public class CMP implements GenInstructionHandler {
 		}
 	}
 	
+	@Override
+	public String toString() {
+		return "CMP";
+	}
 }
