@@ -14,19 +14,27 @@ import com.emulator.addressing.ImmediateData;
 import com.emulator.addressing.PCWithDisplacement;
 import com.emulator.addressing.PCWithIndex;
 import com.emulator.instruction.ABCD;
+import com.emulator.instruction.ADD;
 import com.emulator.instruction.ADDQ;
 import com.emulator.instruction.ANDI;
 import com.emulator.instruction.ANDI_CCR;
 import com.emulator.instruction.ANDI_SR;
 import com.emulator.instruction.BCC;
 import com.emulator.instruction.BTST;
+import com.emulator.instruction.CMP;
 import com.emulator.instruction.CMPI;
 import com.emulator.instruction.DBcc;
 import com.emulator.instruction.LEA;
 import com.emulator.instruction.MOVE;
+import com.emulator.instruction.MOVEA;
+import com.emulator.instruction.MOVEQ;
+import com.emulator.instruction.MOVE_FROM_SR;
+import com.emulator.instruction.MOVE_TO_SR;
 import com.emulator.instruction.Operation;
 import com.emulator.instruction.SUBQ;
 import com.emulator.instruction.TST;
+
+import util.OpcodeDecoder;
 
 
 public class CPU68000 {	
@@ -74,10 +82,11 @@ public class CPU68000 {
     
     /** Inicializa mapa de instruções */
     private void initInstructions() {
-    	new ABCD(this).generate();
-    	new MOVE(this).generate();
+    	new ABCD(this).generate();   
+    	new ADD(this).generate();    	
     	new TST(this).generate();
     	new BCC(this).generate();
+    	new CMP(this).generate();
     	new BTST(this).generate();
     	new ANDI(this).generate();
     	new ANDI_CCR(this).generate();
@@ -87,6 +96,11 @@ public class CPU68000 {
     	new ADDQ(this).generate();
     	new SUBQ(this).generate();
     	new DBcc(this).generate();
+    	new MOVE(this).generate();
+    	new MOVEA(this).generate();
+    	new MOVEQ(this).generate();
+    	new MOVE_TO_SR(this).generate();
+    	new MOVE_FROM_SR(this).generate();
     	
     }
     
@@ -115,33 +129,38 @@ public class CPU68000 {
 	
     /** Executa uma instrução e retorna ciclos gastos */
     public int runInstruction(boolean print) {    	
-    	
+
     	// Busca o opcode da memória (bus) na posição do PC (Program Counter)
     	long opcode = memory.read(PC, Size.WORD); 		
 
         GenInstruction instr = instructions[(int) opcode];
-        
-		if (print) {
-			StringBuilder sb = new StringBuilder();			
-			printDebug(opcode, sb);
-			System.out.println(sb.toString()); // Imprime estado se solicitado
-		}        
-        
+
         int cycles = 0;
-        if (instr != null) {
+        if (instr != null) {        	
         	
-        	System.out.println("[Instruction]:" + instr);    	
-        	
+        	if (print) {    			
+    			StringBuilder sb = new StringBuilder();			
+    			printDebug(opcode, sb);
+    			System.out.println("********************************"); 
+    			System.out.println(sb.toString()); // Imprime estado se solicitado
+    			System.out.println("[Instruction]:" + instr);    	
+    		} 
+
             instr.run((int) opcode);  
             
             PC = (PC + 2) & 0xFFFFFF;    
-            
-//            dumpState((int) opcode);   
+
 //            cycles = instr.getCycles(opcode); 
         } else {
-//            System.out.printf("Opcode não implementado: %04X%n", opcode);
-            System.err.printf("Opcode %04X não implementado em PC=%08X%n ", opcode, PC);
-            cycles = estimateCycles((int) opcode);
+
+            System.err.printf("Opcode : %04X não implementado em PC=%08X%n ", opcode, PC);            
+            System.err.printf("Opcode : %04X não implementado [GRUPO]: %s%n", opcode, OpcodeDecoder.decode((int) opcode));                  
+        	System.err.printf("******************************************************************************* "); 
+            
+            StringBuilder sb = new StringBuilder();	        		
+        	printDebug(opcode, sb);
+        	System.err.printf("\r\n" + sb.toString()); 
+//          cycles = estimateCycles((int) opcode);
         }
         return cycles;
     }
@@ -167,11 +186,9 @@ public class CPU68000 {
         System.out.printf("Flags [X=%b Z=%b N=%b C=%b V=%b]%n", flagX, flagZ, flagN, flagC, flagV);
     }
     
-	private void printDebug(long opcode, StringBuilder sb) {	
-		
+	private void printDebug(long opcode, StringBuilder sb) {			
 		// Monta informações de debug sobre o estado atual da CPU
-		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");				
-		
+		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");			
 		for (int j = 0; j < 8; j++) {
 			sb.append(" A" + j + ":" + Integer.toHexString((int) A[j]));
 		}

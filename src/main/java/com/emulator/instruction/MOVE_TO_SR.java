@@ -4,49 +4,48 @@ import com.emulator.CPU68000;
 import com.emulator.GenInstruction;
 import com.emulator.Size;
 
+
 //NAME
-//LEA -- Load effective address
+//MOVE to SR -- Move to status register (PRIVILEGED)
 //
 //SYNOPSIS
-//LEA	<ea>,An
+//MOVE	<ea>,SR
 //
-//Size = (Long)
+//Size = (Word)
 //
 //FUNCTION
-//Places the specified address into the destination address
-//register. Note: All 32 bits of An are affected by this instruction.
+//The content of the source operand is moved to the
+//status register. The source operand size is a word
+//and all bits of the status register are affected.
 //
 //FORMAT
 //-----------------------------------------------------------------
 //|15 |14 |13 |12 |11 |10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-//|---|---|---|---|-----------|---|---|---|-----------|-----------|
-//| 0 | 1 | 0 | 0 | REGISTER  | 1 | 1 | 1 |    MODE   | REGISTER  |
+//|---|---|---|---|---|---|---|---|---|---|-----------|-----------|
+//| 0 | 1 | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 1 |    MODE   | REGISTER  |
 //----------------------------------------=========================
-//                                                   <ea>
+//                                                  <ea>
+//
 //REGISTER
-//"REGISTER" indicates the number of address register
-//
-//<ea> specifies address which must be loaded in the address register.
-//Allowed addressing modes are:
-//
+//<ea> specifies source operand, addressing modes allowed are:
 //--------------------------------- -------------------------------
 //|Addressing Mode|Mode| Register | |Addressing Mode|Mode|Register|
 //|-------------------------------| |-----------------------------|
-//|      Dn       | -  |    -     | |    Abs.W      |111 |  000   |
+//|      Dn       |000 |N° reg. Dn| |    Abs.W      |111 |  000   |
 //|-------------------------------| |-----------------------------|
 //|      An       | -  |    -     | |    Abs.L      |111 |  001   |
 //|-------------------------------| |-----------------------------|
 //|     (An)      |010 |N° reg. An| |   (d16,PC)    |111 |  010   |
 //|-------------------------------| |-----------------------------|
-//|     (An)+     | -  |    -     | |   (d8,PC,Xi)  |111 |  011   |
+//|     (An)+     |011 |N° reg. An| |   (d8,PC,Xi)  |111 |  011   |
 //|-------------------------------| |-----------------------------|
-//|    -(An)      | -  |    -     | |   (bd,PC,Xi)  |111 |  011   |
+//|    -(An)      |100 |N° reg. An| |   (bd,PC,Xi)  |111 |  011   |
 //|-------------------------------| |-----------------------------|
 //|    (d16,An)   |101 |N° reg. An| |([bd,PC,Xi],od)|111 |  011   |
 //|-------------------------------| |-----------------------------|
 //|   (d8,An,Xi)  |110 |N° reg. An| |([bd,PC],Xi,od)|111 |  011   |
 //|-------------------------------| |-----------------------------|
-//|   (bd,An,Xi)  |110 |N° reg. An| |    #data      | -  |   -    |
+//|   (bd,An,Xi)  |110 |N° reg. An| |    #data      |111 |  100   |
 //|-------------------------------| -------------------------------
 //|([bd,An,Xi]od) |110 |N° reg. An|
 //|-------------------------------|
@@ -54,61 +53,65 @@ import com.emulator.Size;
 //---------------------------------
 //
 //RESULT
-//None.
-public class LEA implements GenInstructionHandler {
+//
+//X - Set the same as bit 4 of the source operand.
+//N - Set the same as bit 3 of the source operand.
+//Z - Set the same as bit 2 of the source operand.
+//V - Set the same as bit 1 of the source operand.
+//C - Set the same as bit 0 of the source operand.
+
+public class MOVE_TO_SR implements GenInstructionHandler {
 
 	final CPU68000 cpu;
 	
-	public LEA(CPU68000 cpu) {
+	public MOVE_TO_SR(CPU68000 cpu) {
 		this.cpu = cpu;
 	}
 	
 	@Override
 	public void generate() {
-		int base = 0x41C0;
-		GenInstruction ins;
+		int base = 0x46C0;
+		GenInstruction ins = null;
 		
 		ins = new GenInstruction() {
 			
 			@Override
 			public void run(int opcode) {
-				LEAWord(opcode);
+				MOVEToSR(opcode);
 			}
-			
-			@Override
-			public String toString() {
-				return "LEA.WORD";
-			}
-			
 		};
-		
-		for (int register = 0; register < 8; register++) {
-			for (int m = 0; m < 8; m++) {
-				for (int r = 0; r < 8; r++) {
-					if (m == 0b000 || m == 0b001 || m == 0b011 || m == 0b100) {
-						continue;
-					}
-					if (m == 0b111 && r > 0b011) {
-						continue;
-					}
-					
-					int opcode = base + ((register << 9) | (m << 3) | r);
-					cpu.addInstruction(opcode, ins);
+
+		for (int m = 0; m < 8; m++) {
+			if (m == 1) {
+				continue;
+			}
+			for (int r = 0; r < 8; r++) {
+				if (m == 0b111 && r > 0b100) {
+					continue;
 				}
+				int opcode = base + (m << 3) | (r);
+				cpu.addInstruction(opcode, ins);
 			}
 		}
-		
 	}
 	
-	private void LEAWord(int opcode) {
-		int destReg = (opcode >> 9) & 0x7;
+	private void MOVEToSR(int opcode) {
 		int mode = (opcode >> 3) & 0x7;
-		int register = (opcode & 0x7);
+		int register = opcode & 0x7;
+
+		int oldSR = cpu.SR;
 		
 		Operation o = cpu.resolveAddressingMode(Size.WORD, mode, register);
-		long addr = o.getAddress();
+		long data = o.getAddressingMode().getWord(o);
+		cpu.SR = (int) data;
 		
-		cpu.setALong(destReg, addr);
+		if (((oldSR & 0x2000) ^ (data & 0x2000)) != 0) {	//	si cambio el supervisor bit
+			if ((data & 0x2000) == 0x2000) {
+				cpu.setALong(7, cpu.SSP);
+			} else {
+				cpu.setALong(7, cpu.USP);
+			}	
+		}
 	}
-
+	
 }

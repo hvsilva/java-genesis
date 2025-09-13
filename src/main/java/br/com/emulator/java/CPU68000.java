@@ -5,6 +5,7 @@ import java.util.List;
 
 import br.com.emulator.java.addressing.AddressingMode;
 import br.com.emulator.java.instruction.Operation;
+import util.OpcodeDecoder;
 
 public class CPU68000 {
 
@@ -105,12 +106,8 @@ public class CPU68000 {
 
 	public int runInstruction(boolean print) {
 	    // Busca o opcode da memória (bus) na posição do PC (Program Counter)
-		long opcode = bus.read(PC, Size.WORD);
-		
-		if (print) {
-			printDebug(opcode);
-			System.out.println(sb.toString()); // Imprime estado se solicitado
-		}
+		long opcode = bus.read(PC, Size.WORD);		
+
 
 		sb.setLength(0); // Limpa buffer de debug
 
@@ -164,12 +161,19 @@ public class CPU68000 {
 //	                break;
 //	        }
 //	    }
+		
+		if (print) {
+			printDebug(opcode);			
+			
+	        System.err.printf("Opcode : %04X em PC=%08X%n ", opcode, PC);            
+            System.err.printf("Opcode : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));			
+			System.out.println(sb.toString()); // Imprime estado se solicitado
+		
+		}
 
 		 // Busca e executa a instrução decodificada
 		GenInstruction instruction = getInstruction((int) opcode);
 		instruction.run((int) opcode);
-		
-//		System.out.printf("[Instruction]: %s%n", instruction);
 
 		PC += 2; // Avança o program counter (normalmente 2 bytes para 68000)
 

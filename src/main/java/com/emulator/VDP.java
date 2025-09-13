@@ -159,7 +159,7 @@ public class VDP {
 	public void run(int cycles) {
 		totalCycles += cycles;
 
-		System.out.println("[registers] : " + registers[1]);
+		System.out.println("[REGISTERS] : " + registers[1]);
 
 		if (totalCycles < 800) {
 			hblank = false;

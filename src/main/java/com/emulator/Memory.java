@@ -30,7 +30,7 @@ public class Memory {
 	// =======================
 	public long read(long address, Size size) {
 
-		System.out.println("[CALL READ]: " + Long.toHexString(address) + " - " + size);
+		System.out.println("[CALL READ]: " + Long.toHexString(address) + " - " + size );
 
 		address &= 0xFF_FFFF; // 24-bit mask
 		long data = 0;
@@ -87,7 +87,23 @@ public class Memory {
 			if (size == Size.WORD)
 				return (v << 8) | h;
 			return (address == 0xC00008) ? v : h;
-		}
+			
+		} else if (address >= 0xA10000 && address <= 0xA1001F) {		  
+			
+			int offset = (int)(address - 0xA10000);
+
+		    switch (offset) {
+		        case 0x00: // Joypad 1
+		            return 0xFFFF; // nenhum botão pressionado (padrão alto)
+		        case 0x02: // Joypad 2
+		            return 0xFFFF;
+		        case 0x08: // I/O Control
+		            return 0x00; // ou 0xFF dependendo do que você quer simular
+		        default:
+		            System.out.printf("Read I/O port: %06X%n", address);
+		            return 0xFFFF;
+		    }
+		}    
 
 		// ======================
 		// 4. Work RAM (0xFF0000 – 0xFFFFFF)
