@@ -637,141 +637,6 @@ public class VDP {
 		}
 	}
 	
-	private void writeRamAddress(long data) {
-		if (!addressSecondWrite) {
-			System.out.println("first");
-
-			firstWrite = data;
-			addressSecondWrite = true;
-
-		} else {
-			addressSecondWrite = false;
-
-			long first = firstWrite;
-			long second = data;
-			all = (first << 16) | second;
-
-			int code = (int) ((first >> 14) | (((second >> 4) & 0xF) << 2));
-			int addr = (int) ((first & 0x3FFF) | ((second & 0x3) << 14));
-
-			System.out.println("second code " + Integer.toHexString(code));
-
-			addressPort = addr;
-			autoIncrementTotal = 0; // reset este acumulador
-
-			// reset de los flags TODO confirmar que van aca
-			cramWrite2 = false;
-			vramWrite2 = false;
-			vsramWrite2 = false;
-
-			int addressMode = code & 0xF; // solo el primer byte, el bit 4 y 5 son para DMA
-										 // que ya fue contemplado arriba
-			if (addressMode == 0b0000) { // VRAM Read
-				vramMode = VramMode.vramRead;
-
-			} else if (addressMode == 0b0001) { // VRAM Write
-				vramMode = VramMode.vramWrite;
-
-			} else if (addressMode == 0b1000) { // CRAM Read
-				vramMode = VramMode.cramRead;
-
-			} else if (addressMode == 0b0011) { // CRAM Write
-				vramMode = VramMode.cramWrite;
-
-			} else if (addressMode == 0b0100) { // VSRAM Read
-				vramMode = VramMode.vsramWrite;
-
-			} else if (addressMode == 0b0101) { // VSRAM Write
-				vramMode = VramMode.vsramWrite;
-			}
-
-			System.out.println("Video mode: " + vramMode.toString());
-
-			// https://wiki.megadrive.org/index.php?title=VDP_DMA
-			if ((code & 0b100000) > 0) { // DMA
-				int dmaBits = code >> 4;
-				dmaRecien = true;
-
-				if ((dmaBits & 0b10) > 0) { // VRAM Fill
-					if ((registers[0x17] & 0x80) == 0x80) {
-//						FILL mode fills with same data from free even VRAM address.
-//						FILL for only VRAM.
-						dmaModo = DmaMode.VRAM_FILL;
-						vramFill = true;
-
-					} else {
-						dmaModo = DmaMode.MEM_TO_VRAM;
-						memToVram = true;
-
-						if (m1) {
-							dmaMem2Vram(all);
-						} else {
-							System.out.println("DMA but no m1 set !!");
-						}
-					}
-
-				} else if ((dmaBits & 0b11) > 0) { // VRAM Copy
-					dmaModo = DmaMode.VRAM_COPY;
-					throw new RuntimeException();
-				}
-			}
-		}
-	}
-
-	// Converte CRAM 9-bit (BGR) para RGB888
-	private int cramToRgb(int index) {
-	    int word = cram[index] & 0xFFFF;
-	    int r = ((word >> 1) & 0x07) * 36;
-	    int g = ((word >> 5) & 0x07) * 36;
-	    int b = ((word >> 9) & 0x07) * 36;
-	    return (0xFF << 24) | (r << 16) | (g << 8) | b; // ARGB
-	}
-    
-    public int read(long address, Size size) {
-        // Endereço de registrador VDP
-        int reg = (int)((address - 0xC00000) / 2);
-        if (reg >= 0 && reg < registers.length) {
-            int value = registers[reg];
-            switch (size) {
-                case BYTE: return value & 0xFF;
-                case WORD: return value & 0xFFFF;
-                case LONG: return value & 0xFFFF;
-                default: return 0;
-            }
-        } else {
-            System.err.printf("VDP read: endereço inválido %06X\n", address);
-            return 0;
-        }
-    }
-    
-    public void write(long address, long data, Size size) {
-        // Exemplo: VDP registers mapeados em 0xC00000 - 0xC0001F
-        int reg = (int)((address - 0xC00000) / 2); // cada registrador tem 2 bytes
-
-        if (reg >= 0 && reg < registers.length) {
-            switch (size) {
-                case BYTE:
-                    registers[reg] = (int)(data & 0xFF);
-                    break;
-                case WORD:
-                    registers[reg] = (int)(data & 0xFFFF);
-                    break;
-                case LONG:
-                    registers[reg] = (int)(data & 0xFFFF); // geralmente só WORD, mas pode adaptar
-                    break;
-            }
-        } else {
-            System.err.printf("VDP write: endereço inválido %06X\n", address);
-        }
-    }
-
-
-    
-    public void dmaFill() {
-        // TODO: implementar DMA de preenchimento da VRAM
-        // Por enquanto não faz nada, só evita erro
-    }
-    
 //	 Registers 19, 20, specify how many 16-bit words to transfer:
 //
 //	 #19: L07 L06 L05 L04 L03 L02 L01 L00
@@ -857,6 +722,140 @@ public class VDP {
 		registers[0x14] = 0;
 		registers[0x13] = 0;
 	}
+		
+    public int read(long address, Size size) {
+        // Endereço de registrador VDP
+        int reg = (int)((address - 0xC00000) / 2);
+        if (reg >= 0 && reg < registers.length) {
+            int value = registers[reg];
+            switch (size) {
+                case BYTE: return value & 0xFF;
+                case WORD: return value & 0xFFFF;
+                case LONG: return value & 0xFFFF;
+                default: return 0;
+            }
+        } else {
+            System.err.printf("VDP read: endereço inválido %06X\n", address);
+            return 0;
+        }
+    }
+    
+    public void write(long address, long data, Size size) {
+        // Exemplo: VDP registers mapeados em 0xC00000 - 0xC0001F
+        int reg = (int)((address - 0xC00000) / 2); // cada registrador tem 2 bytes
+
+        if (reg >= 0 && reg < registers.length) {
+            switch (size) {
+                case BYTE:
+                    registers[reg] = (int)(data & 0xFF);
+                    break;
+                case WORD:
+                    registers[reg] = (int)(data & 0xFFFF);
+                    break;
+                case LONG:
+                    registers[reg] = (int)(data & 0xFFFF); // geralmente só WORD, mas pode adaptar
+                    break;
+            }
+        } else {
+            System.err.printf("VDP write: endereço inválido %06X\n", address);
+        }
+    }
+	
+	private void writeRamAddress(long data) {
+		if (!addressSecondWrite) {
+			System.out.println("first");
+
+			firstWrite = data;
+			addressSecondWrite = true;
+
+		} else {
+			addressSecondWrite = false;
+
+			long first = firstWrite;
+			long second = data;
+			all = (first << 16) | second;
+
+			int code = (int) ((first >> 14) | (((second >> 4) & 0xF) << 2));
+			int addr = (int) ((first & 0x3FFF) | ((second & 0x3) << 14));
+
+			System.out.println("second code " + Integer.toHexString(code));
+
+			addressPort = addr;
+			autoIncrementTotal = 0; // reset este acumulador
+
+			// reset de los flags TODO confirmar que van aca
+			cramWrite2 = false;
+			vramWrite2 = false;
+			vsramWrite2 = false;
+
+			int addressMode = code & 0xF; // solo el primer byte, el bit 4 y 5 son para DMA
+										 // que ya fue contemplado arriba
+			if (addressMode == 0b0000) { // VRAM Read
+				vramMode = VramMode.vramRead;
+
+			} else if (addressMode == 0b0001) { // VRAM Write
+				vramMode = VramMode.vramWrite;
+
+			} else if (addressMode == 0b1000) { // CRAM Read
+				vramMode = VramMode.cramRead;
+
+			} else if (addressMode == 0b0011) { // CRAM Write
+				vramMode = VramMode.cramWrite;
+
+			} else if (addressMode == 0b0100) { // VSRAM Read
+				vramMode = VramMode.vsramWrite;
+
+			} else if (addressMode == 0b0101) { // VSRAM Write
+				vramMode = VramMode.vsramWrite;
+			}
+
+			System.out.println("Video mode: " + vramMode.toString());
+
+			// https://wiki.megadrive.org/index.php?title=VDP_DMA
+			if ((code & 0b100000) > 0) { // DMA
+				int dmaBits = code >> 4;
+				dmaRecien = true;
+
+				if ((dmaBits & 0b10) > 0) { // VRAM Fill
+					if ((registers[0x17] & 0x80) == 0x80) {
+//						FILL mode fills with same data from free even VRAM address.
+//						FILL for only VRAM.
+						dmaModo = DmaMode.VRAM_FILL;
+						vramFill = true;
+
+					} else {
+						dmaModo = DmaMode.MEM_TO_VRAM;
+						memToVram = true;
+
+						if (m1) {
+							dmaMem2Vram(all);
+						} else {
+							System.out.println("DMA but no m1 set !!");
+						}
+					}
+
+				} else if ((dmaBits & 0b11) > 0) { // VRAM Copy
+					dmaModo = DmaMode.VRAM_COPY;
+					throw new RuntimeException();
+				}
+			}
+		}
+	}
+
+	// Converte CRAM 9-bit (BGR) para RGB888
+//	private int cramToRgb(int index) {
+//	    int word = cram[index] & 0xFFFF;
+//	    int r = ((word >> 1) & 0x07) * 36;
+//	    int g = ((word >> 5) & 0x07) * 36;
+//	    int b = ((word >> 9) & 0x07) * 36;
+//	    return (0xFF << 24) | (r << 16) | (g << 8) | b; // ARGB
+//	}
+
+    public void dmaFill() {
+        // TODO: implementar DMA de preenchimento da VRAM
+        // Por enquanto não faz nada, só evita erro
+    }
+    
 	
 	private void writeVramByte(int address, int data) {
 		vram[address] = data;

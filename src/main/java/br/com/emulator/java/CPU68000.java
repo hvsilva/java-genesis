@@ -7,6 +7,52 @@ import br.com.emulator.java.addressing.AddressingMode;
 import br.com.emulator.java.instruction.Operation;
 import util.OpcodeDecoder;
 
+// http://tict.ticalc.org/docs/68kguide.txt
+// Status Register o condition code register
+// XExtend: Set to the value of the C-bit for arithmetic operations; otherwise
+// not affected or set to a specified result.
+// NNegative: Set if the most significant bit of the result is set; otherwise
+// clear.
+// ZZero: Set if the result equals zero; otherwise clear.
+// VOverflow: Set if an arithmetic overflow occurs implying that the result
+// cannot be represented in the operand size; otherwise clear.
+// CCarry: Set if a carry out of the most significant bit of the operand occurs
+// for an addition, or if a borrow occurs in a subtraction; otherwise clear.
+
+// Bit 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
+//    -------------------------------------------------
+//    | T| -| S| -| -| I2,1,0 | -| -| -| X| N| Z| V| C|   - the status register
+//    -------------------------------------------------
+
+//Bit 15: T - The trace bit. If it's set an interrupts will be called after
+//    each instruction. Often used in debuggers.
+//
+//Bit 13: S - Supervisor bit. When this bit is set, you have more "access" to
+//    some instructions and also to the systembyte. The reason for this is
+//    that it prevents programs to disturb the OS with some instructions
+//    that you shouldn't use if you're not writing an OS. Is enabled
+//    when interruptions are generated.
+//
+//Bit 8-10: The interrupt mask
+//
+//The I0, I1 and I2 bits of the system register are used to set the interrupt
+//mask: in fact, it means that they are set to an interupt level: if the trap 
+//generated has a level higher than the interrupt mask, then the trap is
+//executed. Otherwise it is ignored. ( ignoring a trap generally means that
+//another interrupt, with a higher priority is beeing treated )
+//
+//Here is how these bits are set:
+//
+//    | I2 | I1 | I0 |
+//
+//level 0 |  0    0    0 |  ---------> lowest priority
+//level 1 |  0    0    1 |
+//level 2 |  0    1    0 |
+//level 3 |  0    1    1 |
+//level 4 |  1    0    0 |
+//level 5 |  1    0    1 |
+//level 6 |  1    1    0 |
+//level 7 |  1    1    1 |  ---------> highest priority
 public class CPU68000 {
 
 	private long[] D = new long[8]; // D0-D7
@@ -19,52 +65,6 @@ public class CPU68000 {
 
 	public long USP; // User SP
 
-	// http://tict.ticalc.org/docs/68kguide.txt
-	// Status Register o condition code register
-	// XExtend: Set to the value of the C-bit for arithmetic operations; otherwise
-	// not affected or set to a specified result.
-	// NNegative: Set if the most significant bit of the result is set; otherwise
-	// clear.
-	// ZZero: Set if the result equals zero; otherwise clear.
-	// VOverflow: Set if an arithmetic overflow occurs implying that the result
-	// cannot be represented in the operand size; otherwise clear.
-	// CCarry: Set if a carry out of the most significant bit of the operand occurs
-	// for an addition, or if a borrow occurs in a subtraction; otherwise clear.
-
-//	 Bit 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
-//	    -------------------------------------------------
-//	    | T| -| S| -| -| I2,1,0 | -| -| -| X| N| Z| V| C|   - the status register
-//	    -------------------------------------------------
-
-//Bit 15: T - The trace bit. If it's set an interrupts will be called after
-//        each instruction. Often used in debuggers.
-//
-//Bit 13: S - Supervisor bit. When this bit is set, you have more "access" to
-//        some instructions and also to the systembyte. The reason for this is
-//        that it prevents programs to disturb the OS with some instructions
-//        that you shouldn't use if you're not writing an OS. Is enabled
-//        when interruptions are generated.
-//
-//Bit 8-10: The interrupt mask
-//
-// The I0, I1 and I2 bits of the system register are used to set the interrupt
-//mask: in fact, it means that they are set to an interupt level: if the trap 
-//generated has a level higher than the interrupt mask, then the trap is
-//executed. Otherwise it is ignored. ( ignoring a trap generally means that
-//another interrupt, with a higher priority is beeing treated )
-//
-//Here is how these bits are set:
-//
-//        | I2 | I1 | I0 |
-//
-//level 0 |  0    0    0 |  ---------> lowest priority
-//level 1 |  0    0    1 |
-//level 2 |  0    1    0 |
-//level 3 |  0    1    1 |
-//level 4 |  1    0    0 |
-//level 5 |  1    0    1 |
-//level 6 |  1    1    0 |
-//level 7 |  1    1    1 |  ---------> highest priority
 	public int SR;
 
 	public boolean stop = false;
@@ -644,6 +644,8 @@ public class CPU68000 {
 		if (instr != null) {
 			throw new RuntimeException(pad4(opcode) + " - " + instr.getClass().toGenericString());
 		}
+//		System.out.printf("Opcode DEC : " + opcode + "\r\n");	
+//      System.err.printf("Opcode HEX : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));	
 		totalInstructions++;
 		instructions[opcode] = ins;
 	}

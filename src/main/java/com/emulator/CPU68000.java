@@ -21,9 +21,11 @@ import com.emulator.instruction.ANDI_CCR;
 import com.emulator.instruction.ANDI_SR;
 import com.emulator.instruction.BCC;
 import com.emulator.instruction.BTST;
+import com.emulator.instruction.CLR;
 import com.emulator.instruction.CMP;
 import com.emulator.instruction.CMPI;
 import com.emulator.instruction.DBcc;
+import com.emulator.instruction.JSR;
 import com.emulator.instruction.LEA;
 import com.emulator.instruction.MOVE;
 import com.emulator.instruction.MOVEA;
@@ -31,11 +33,10 @@ import com.emulator.instruction.MOVEQ;
 import com.emulator.instruction.MOVE_FROM_SR;
 import com.emulator.instruction.MOVE_TO_SR;
 import com.emulator.instruction.Operation;
-import com.emulator.instruction.SUBQ;
+import com.emulator.instruction.RTS;
 import com.emulator.instruction.TST;
 
 import util.OpcodeDecoder;
-
 
 public class CPU68000 {	
 	
@@ -82,26 +83,80 @@ public class CPU68000 {
     
     /** Inicializa mapa de instruções */
     private void initInstructions() {
-    	new ABCD(this).generate();   
-    	new ADD(this).generate();    	
-    	new TST(this).generate();
-    	new BCC(this).generate();
-    	new CMP(this).generate();
-    	new BTST(this).generate();
-    	new ANDI(this).generate();
-    	new ANDI_CCR(this).generate();
-    	new ANDI_SR(this).generate();
-    	new LEA(this).generate();
-    	new CMPI(this).generate();
-    	new ADDQ(this).generate();
-    	new SUBQ(this).generate();
-    	new DBcc(this).generate();
-    	new MOVE(this).generate();
-    	new MOVEA(this).generate();
-    	new MOVEQ(this).generate();
-    	new MOVE_TO_SR(this).generate();
-    	new MOVE_FROM_SR(this).generate();
-    	
+		new ABCD(this).generate();
+		new ADD(this).generate();
+//		new ADDA(this).generate();
+//		new ADDI(this).generate();
+		new ADDQ(this).generate();
+//		new ADDX(this).generate();
+//		new AND(this).generate();
+		new ANDI(this).generate();
+		new ANDI_CCR(this).generate();
+		new ANDI_SR(this).generate();
+//		new ASL(this).generate();
+//		new ASR(this).generate();
+		new BCC(this).generate();
+//		new BCHG(this).generate();
+//		new BCLR(this).generate();
+//		new BSET(this).generate();
+		new BTST(this).generate();
+		new CLR(this).generate();
+		new CMP(this).generate();
+//		new CMPA(this).generate();
+		new CMPI(this).generate();
+//		new CMPM(this).generate();
+		new DBcc(this).generate();
+//		new DIVS(this).generate();
+//		new DIVU(this).generate();
+//		new EOR(this).generate();
+//		new EORI(this).generate();
+//		new EORI_CCR(this).generate();
+//		new EORI_SR(this).generate();
+//		new EXG(this).generate();
+//		new EXT(this).generate();
+//		new JMP(this).generate();
+		new JSR(this).generate();
+		new LEA(this).generate();
+//		new LINK(this).generate();
+//		new LSL(this).generate();
+//		new LSR(this).generate();
+		new MOVE(this).generate();
+		new MOVEA(this).generate();
+		new MOVE_FROM_SR(this).generate();
+//		new MOVE_TO_CCR(this).generate();
+		new MOVE_TO_SR(this).generate();
+//		new MOVE_TO_FROM_USP(this).generate();
+//		new MOVEM(this).generate();
+//		new MOVEP(this).generate();
+		new MOVEQ(this).generate();
+//		new MULS(this).generate();
+//		new MULU(this).generate();
+//		new NBCD(this).generate();
+//		new NEG(this).generate();
+//		new NOP(this).generate();
+//		new NOT(this).generate();
+//		new OR(this).generate();
+//		new ORI(this).generate();
+//		new ORI_CCR(this).generate();
+//		new ORI_SR(this).generate();
+//		new PEA(this).generate();
+//		new ROR(this).generate();
+//		new ROXL(this).generate();
+//		new ROXR(this).generate();
+//		new RTE(this).generate();
+//		new RTR(this).generate();
+		new RTS(this).generate();
+//		new SBCD(this).generate();
+//		new Scc(this).generate();
+//		new STOP(this).generate();
+//		new SUB(this).generate();
+//		new SUBA(this).generate();
+//		new SUBI(this).generate();
+//		new SUBQ(this).generate();
+//		new SWAP(this).generate();
+//		new TRAP(this).generate();
+		new TST(this).generate();
+//		new UNLK(this).generate();  	
     }
     
     /** Reset realista (SP e PC vêm da ROM) */
@@ -153,8 +208,8 @@ public class CPU68000 {
 //            cycles = instr.getCycles(opcode); 
         } else {
 
-            System.err.printf("Opcode : %04X não implementado em PC=%08X%n ", opcode, PC);            
-            System.err.printf("Opcode : %04X não implementado [GRUPO]: %s%n", opcode, OpcodeDecoder.decode((int) opcode));                  
+            System.err.printf("Opcode HEX : %04X não implementado em PC=%08X%n ", opcode, PC);            
+            System.err.printf("Opcode DEC : %s Opcode HEX : %04X não implementado [GRUPO]: %s%n", opcode, opcode, OpcodeDecoder.decode((int) opcode));                  
         	System.err.printf("******************************************************************************* "); 
             
             StringBuilder sb = new StringBuilder();	        		
@@ -205,6 +260,9 @@ public class CPU68000 {
 		if (instr != null) {
 			throw new RuntimeException(pad4(opcode) + " - " + instr.getClass().toGenericString());
 		}
+		
+//		System.out.printf("Opcode DEC : " + opcode + "\r\n");	
+//        System.err.printf("Opcode HEX : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));	
 		totalInstructions++;
 		instructions[opcode] = ins;
 	}
@@ -291,8 +349,7 @@ public class CPU68000 {
 				USP = (int) A[register];
 			}
 		}
-	}
-	
+	}	
 
     // ========== Flags ==========
 	public boolean isX() {

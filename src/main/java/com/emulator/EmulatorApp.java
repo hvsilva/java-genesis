@@ -94,7 +94,7 @@ public class EmulatorApp extends JFrame {
 	private void loadROM(File file) {
 		try {
 			Cartridge cart = new Cartridge(file.getAbsolutePath());
-			Memory memory = new Memory(cart);
+			Memory memory = new Memory(cart.getROMData());
 			emulator = new Emulator(memory);
 
 			info.setText("Loaded: " + file.getName() + " (" + cart.getSize() + " bytes)");

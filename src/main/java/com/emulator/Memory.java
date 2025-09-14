@@ -21,9 +21,9 @@ public class Memory {
 	}
 
 	// Construtor que aceita Cartridge
-	public Memory(Cartridge cart) {
-		this(cart.getROMData());
-	}
+//	public Memory(Cartridge cart) {
+//		this(cart.getROMData());
+//	}
 
 	// =======================
 	// ======= READ ==========
@@ -36,15 +36,13 @@ public class Memory {
 		long data = 0;
 
 		// ======================
-		// 1. Cartridge ROM (0x000000 – 0x3FFFFF)
-		// ======================
-		if (address <= 0x3FFFFF) {
-			if (address < rom.length) {
-				return safeReadBytes(rom, (int) address, size, "ROM");
-			} else {
-				return 0xFF; // "open bus"
-			}
-		}
+	    // 1. Cartridge ROM (0x000000 – 0x3FFFFF)
+	    // ======================
+	    if (address <= 0x3FFFFF) {
+	        // Usando nova função com wrapping
+	        data = RomReader.safeReadBytes(rom, address, size);
+	        return data;
+	    }
 
 		// ======================
 		// 2. SRAM (0x200000 – 0x20FFFF)
@@ -253,7 +251,7 @@ public class Memory {
 	// =======================
 	// ===== Helpers =========
 	// =======================
-	private int safeReadBytes(byte[] mem, int offset, Size size, String region) {
+	private long safeReadBytes(byte[] mem, int offset, Size size, String region) {
 		int max = mem.length;
 		int bytes = size == Size.BYTE ? 1 : (size == Size.WORD ? 2 : 4);
 		if (offset < 0 || offset + bytes > max) {
@@ -262,6 +260,41 @@ public class Memory {
 			return 0;
 		}
 		return readBytes(mem, offset, size);
+	}
+	
+	/**
+	 * Lê um valor da memória no formato big-endian (68k).
+	 *
+	 * @param mem    Array de bytes da memória/ROM
+	 * @param offset Posição de leitura
+	 * @param size   Tamanho (BYTE, WORD, LONG)
+	 * @return Valor lido (0..0xFF, 0..0xFFFF ou 0..0xFFFFFFFF)
+	 */
+	private long readBytes(byte[] mem, int offset, Size size) {
+	    // Proteção contra overflow
+	    int required = offset + size.getBytes() - 1;
+	    if (required >= mem.length || offset < 0) {
+	        // "Open bus" (valor indefinido, alguns emuladores usam 0xFF ou 0)
+	        return 0xFF;
+	    }
+
+	    switch (size) {
+	        case BYTE:
+	            return mem[offset] & 0xFFL;
+
+	        case WORD:
+	            return ((mem[offset] & 0xFFL) << 8)
+	                 | (mem[offset + 1] & 0xFFL);
+
+	        case LONG:
+	            return ((mem[offset]     & 0xFFL) << 24)
+	                 | ((mem[offset + 1] & 0xFFL) << 16)
+	                 | ((mem[offset + 2] & 0xFFL) << 8)
+	                 | (mem[offset + 3] & 0xFFL);
+
+	        default:
+	            throw new IllegalArgumentException("Tamanho inválido: " + size);
+	    }
 	}
 
 	private void safeWriteBytes(byte[] mem, int offset, long data, Size size, String region) {
@@ -273,20 +306,6 @@ public class Memory {
 			return;
 		}
 		writeBytes(mem, offset, data, size);
-	}
-
-	private int readBytes(byte[] mem, int offset, Size size) {
-		switch (size) {
-		case BYTE:
-			return mem[offset] & 0xFF;
-		case WORD:
-			return ((mem[offset] & 0xFF) << 8) | (mem[offset + 1] & 0xFF);
-		case LONG:
-			return ((mem[offset] & 0xFF) << 24) | ((mem[offset + 1] & 0xFF) << 16) | ((mem[offset + 2] & 0xFF) << 8)
-					| (mem[offset + 3] & 0xFF);
-		default:
-			return 0;
-		}
 	}
 
 	private void writeBytes(byte[] mem, int offset, long data, Size size) {

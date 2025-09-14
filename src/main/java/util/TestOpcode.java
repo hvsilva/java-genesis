@@ -3,7 +3,7 @@ package util;
 public class TestOpcode {
 
 	public static void main(String[] args) {
-		int opcode = 0x42B8;
+		int opcode = 0x4E75;
 		
 		System.out.println("Opcode " + Integer.toHexString(opcode) + " = " + OpcodeDecoder.decode(opcode));		
 		
