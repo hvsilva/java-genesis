@@ -52,6 +52,8 @@ public class CPU68000 {
 	public long USP;  // Stack Pointer (user) 
 	public int  SR;   // Status Register
 	
+    int cycles = 0;
+	
 	public boolean stop = false;
 
     // Flags simplificadas
@@ -190,7 +192,8 @@ public class CPU68000 {
 
         GenInstruction instr = instructions[(int) opcode];
 
-        int cycles = 0;
+        cycles = 0;
+        
         if (instr != null) {        	
         	
         	if (print) {    			

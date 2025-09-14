@@ -15,9 +15,9 @@ public class Memory {
 
 	public Memory(byte[] rom) {
 		this.rom = rom;
-		this.ram = new byte[64 * 1024]; // 64KB RAM
+		this.ram = new byte[64 * 1024];  // 64KB RAM
 		this.sram = new byte[32 * 1024]; // 32KB SRAM (padrão comum)
-		this.vdp = new VDP(); // placeholder do vídeo
+		this.vdp = new VDP();            // placeholder do vídeo
 	}
 
 	// Construtor que aceita Cartridge
@@ -122,9 +122,8 @@ public class Memory {
 	// ======= WRITE =========
 	// =======================
 	public long write(long address, long data, Size size) {
-
-		System.out
-				.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));
+	
+		System.out.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));
 
 		long addressL = (address & 0xFFFFFF); // 24-bit mask (68k bus)
 

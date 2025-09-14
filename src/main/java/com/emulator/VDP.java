@@ -159,7 +159,7 @@ public class VDP {
 	public void run(int cycles) {
 		totalCycles += cycles;
 
-		System.out.println("[REGISTERS] : " + registers[1]);
+		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
 
 		if (totalCycles < 800) {
 			hblank = false;
@@ -582,13 +582,18 @@ public class VDP {
 		int dataControl = (int) (data & 0x00FF);
 		int reg = (int) ((data >> 8) & 0x1F);
 
-		System.out.println("REG: " + pad(reg) + " - data: " + pad(dataControl));
+		System.out.println("[REG: " + pad(reg) + " - data: " + pad(dataControl) + "]");		
 
 		cramWrite2 = false;
 		vramWrite2 = false;
 		vsramWrite2 = false;
 
 		registers[reg] = dataControl;
+		
+//		System.out.printf("[WRITE REGISTER] reg=%d, value=%04X (data=%04X) registers[reg]=%04X%n", 
+//		reg, (int) dataControl, (int) data, (int) registers[reg]);	
+	
+    System.out.printf("[WRITE] reg=%d data=%d (hex=%04X)%n", reg, dataControl, dataControl);
 
 		if (reg == 0x00) {
 			vsi = ((data >> 7) & 1) == 1;

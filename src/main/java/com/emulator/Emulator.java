@@ -26,7 +26,10 @@ public class Emulator {
     public Emulator(Memory memory) {
         this.memory = memory;
         this.cpu = new CPU68000(memory);
-        this.vdp = new VDP();
+        
+        // usa o VDP existente no memory
+        this.vdp = memory.getVDP();  
+        
         this.video = new Video(VDP.WIDTH, VDP.HEIGHT);       
         
         vdp.setFrameReadyCallback(() -> {
@@ -34,7 +37,6 @@ public class Emulator {
                 video.draw(vdp.getFrameBuffer());
             });
         });
-
       
     }
     
@@ -70,7 +72,10 @@ public class Emulator {
 
                 // Execução da CPU 68000 (principal)
                 if (!cpu.stop) {
-                    int cycles = cpu.runInstruction(true);
+                	
+//                	System.out.println("[VDP STATE] " + Arrays.toString(vdp.getRegisters()));
+                	
+                    int cycles = cpu.runInstruction(false);
                     
                     // Checagem de interrupções do barramento (como GenApp faz)
                     checkInterrupts();
