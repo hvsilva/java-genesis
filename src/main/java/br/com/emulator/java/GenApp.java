@@ -557,7 +557,7 @@ public class GenApp {
 				}
 				// Execução da CPU 68000 (principal)
 				if (!cpu.stop) {
-					cpu.runInstruction(true);// Executa próxima instrução da CPU principal
+					cpu.runInstruction(false);// Executa próxima instrução da CPU principal
 				}
 				 // Checagem de interrupções do barramento
 				bus.checkInterrupts();

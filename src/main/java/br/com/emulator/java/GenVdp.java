@@ -424,6 +424,8 @@ public class GenVdp {
 
 			registers[0x14] = dmaLength >> 8;
 			registers[0x13] = dmaLength & 0xFF;
+			
+			System.out.printf("[REGISTERS : %s]%n", registers[1]);
 
 //			addressPort += 2;
 //			fifoAddress[index] = destAddr + 2;	//	FIXME, no es fijo, se actualiza en paralelo mientras se siguen ejecutando instrucciones, hay q contar ciclos de cpu
@@ -471,9 +473,7 @@ public class GenVdp {
 				if (m1) {
 					dma = 1;
 					vramFill = false;
-
 					dataPort = (data << 8) | data;
-
 					return;
 				} else {
 					System.out.println("M1 should be 1 in the DMA transfer. otherwise we can't guarantee the operation.");							
@@ -505,13 +505,10 @@ public class GenVdp {
 				if (m1) {
 					dma = 1;
 					vramFill = false;
-
 					dataPort = data;
-
 					return;
 				} else {
-					System.out
-							.println("M1 should be 1 in the DMA transfer. otherwise we can't guarantee the operation.");
+					System.out.println("M1 should be 1 in the DMA transfer. otherwise we can't guarantee the operation.");							
 				}
 
 			} else if (vramMode == VramMode.vramWrite) {
@@ -533,9 +530,7 @@ public class GenVdp {
 				if (m1) {
 					dma = 1;
 					vramFill = false;
-
 					dataPort = data;
-
 					return;
 				} else {
 					System.out
@@ -559,7 +554,6 @@ public class GenVdp {
 //				throw new RuntimeException("NOT IMPL !");
 			}
 		}
-
 	}
 
 //	 Registers 19, 20, specify how many 16-bit words to transfer:
@@ -775,15 +769,15 @@ public class GenVdp {
 		autoIncrementTotal = incrementOffset;
 	}
 
-//	https://emu-docs.org/Genesis/sega2f.htm
+//https://emu-docs.org/Genesis/sega2f.htm
 //The CRAM contains 128 bytes, addresses 0 to 7FH.  For word wide writes to the CRAM, use:
-	// D15 ~ D0 are valid when we use word for data set. If the writes are byte
-	// wide, write the high byte to $C00000 and the low byte to $C00001. A long
-	// word wide access is equivalent to two sequential word wide accesses.
-	// Place the first data in D31 - D16 and the second data in D15 - D0. The
-	// date may be written sequentially; the address is incremented by the value
-	// of REGISTER #15 after every write, independent of whether the width is
-	// byte of word.
+// D15 ~ D0 are valid when we use word for data set. If the writes are byte
+// wide, write the high byte to $C00000 and the low byte to $C00001. A long
+// word wide access is equivalent to two sequential word wide accesses.
+// Place the first data in D31 - D16 and the second data in D15 - D0. The
+// date may be written sequentially; the address is incremented by the value
+// of REGISTER #15 after every write, independent of whether the width is
+// byte of word.
 //Note that A0 is used in the increment but not in address decoding, resulting in some interesting side-effects if writes are attempted at odd addresses.
 	private void cramWriteWord(int data) {
 //		if (!cramWrite2) {

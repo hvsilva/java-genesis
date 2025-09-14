@@ -163,12 +163,10 @@ public class CPU68000 {
 //	    }
 		
 		if (print) {
-			printDebug(opcode);			
-			
+			printDebug(opcode);					
 	        System.err.printf("Opcode : %04X em PC=%08X%n ", opcode, PC);            
             System.err.printf("Opcode : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));			
-			System.out.println(sb.toString()); // Imprime estado se solicitado
-		
+			System.out.println(sb.toString()); // Imprime estado se solicitado		
 		}
 
 		 // Busca e executa a instrução decodificada

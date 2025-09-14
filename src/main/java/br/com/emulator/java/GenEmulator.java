@@ -257,8 +257,8 @@ public class GenEmulator {
 //	https://wiki.megadrive.org/index.php?title=IO_Registers
 	public void write(long address, long data, Size size) {
 		
-		System.out.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));			
-		
+		System.out.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));		
+	
 		
 		long addressL = (address & 0xFF_FFFF);
 		if (size == Size.BYTE) {
