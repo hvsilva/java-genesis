@@ -112,10 +112,6 @@ import br.com.emulator.java.instruction.Scc;
 import br.com.emulator.java.instruction.TRAP;
 import br.com.emulator.java.instruction.TST;
 import br.com.emulator.java.instruction.UNLK;
-import emulator03.Cartridge;
-import emulator03.Memory;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Label;
 
 //	MEMORY MAP:	https://en.wikibooks.org/wiki/Genesis_Programming
 public class GenApp {
@@ -557,7 +553,7 @@ public class GenApp {
 				}
 				// Execução da CPU 68000 (principal)
 				if (!cpu.stop) {
-					cpu.runInstruction(false);// Executa próxima instrução da CPU principal
+					cpu.runInstruction(true);// Executa próxima instrução da CPU principal
 				}
 				 // Checagem de interrupções do barramento
 				bus.checkInterrupts();

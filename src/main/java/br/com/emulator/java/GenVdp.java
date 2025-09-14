@@ -298,13 +298,21 @@ public class GenVdp {
 		int dataControl = (int) (data & 0x00FF);
 		int reg = (int) ((data >> 8) & 0x1F);
 
-		System.out.println("REG: " + pad(reg) + " - data: " + pad(dataControl));
+		System.out.println("[REG: " + pad(reg) + " - data: " + pad(dataControl) +"]");
 
 		cramWrite2 = false;
 		vramWrite2 = false;
 		vsramWrite2 = false;
+		
+		System.out.printf("[WRITE REGISTER] : regIndx=%d registers[reg]=%04X%n", reg, registers[reg]);
 
 		registers[reg] = dataControl;
+		
+		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X)  registers[reg]=%04X%n", reg, dataControl, dataControl, registers[reg]);
+		
+		if (registers[1] == 116) {
+			System.out.println("modo 5");			
+		}
 
 		if (reg == 0x00) {
 			vsi = ((data >> 7) & 1) == 1;
@@ -914,7 +922,11 @@ public class GenVdp {
 	public void run(int cycles) {
 		totalCycles += cycles;
 		
-		 System.out.println("[registers] : " + registers[1]);      
+		 System.out.println("[REGISTERS] : " + registers[1]);  
+		 
+//		 if(registers[1] == 116) {
+//			System.out.println("116"); 
+//		 }
 		
 		if (totalCycles < 800) {
 			hb = 0;
@@ -1911,7 +1923,7 @@ public class GenVdp {
 			int nameTableLocation;
 			int tileLocator;
 			if (rs0 && rs1) {
-				nameTableLocation = registers[0x3] & 0x3C; // WD11 is ignored if the display resolution is 320px wide
+				nameTableLocation = registers[0x3] & 0x3C;  // WD11 is ignored if the display resolution is 320px wide
 															// (H40), which limits the Window nametable address to
 															// multiples of $1000.
 				nameTableLocation *= 0x400;

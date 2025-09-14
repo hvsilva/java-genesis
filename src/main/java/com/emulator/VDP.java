@@ -863,12 +863,15 @@ public class VDP {
 		vramWrite2 = false;
 		vsramWrite2 = false;
 
+		System.out.printf("[WRITE REGISTER] : regIndx=%d registers[reg]=%04X%n", reg, registers[reg]);
+
 		registers[reg] = dataControl;
-
-//		System.out.printf("[WRITE REGISTER] reg=%d, value=%04X (data=%04X) registers[reg]=%04X%n", 
-//		reg, (int) dataControl, (int) data, (int) registers[reg]);	
-
-		System.out.printf("[WRITE] reg=%d data=%d (hex=%04X)%n", reg, dataControl, dataControl);
+		
+		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X)  registers[reg]=%04X%n", reg, dataControl, dataControl, registers[reg]);
+		
+		if (registers[1] == 116) {
+			System.out.println("modo 5");			
+		}
 
 		if (reg == 0x00) {
 			vsi = ((data >> 7) & 1) == 1;
