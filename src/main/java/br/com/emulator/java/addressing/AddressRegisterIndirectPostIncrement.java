@@ -47,6 +47,11 @@ public class AddressRegisterIndirectPostIncrement implements AddressingMode {
 	@Override
 	public long getWord(Operation o) {
 		long addr = o.getAddress();
+		
+//		if (addr == 33140) {
+//			System.out.println("modo 5");			
+//		}
+		
 		long data = cpu.bus.read(addr, Size.WORD);
 			 
 		return data;

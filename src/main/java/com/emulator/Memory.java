@@ -223,6 +223,7 @@ public class Memory {
 			if (size == Size.BYTE) {
 				throw new RuntimeException("VDP control write with BYTE not allowed");
 			} else if (size == Size.WORD) {
+				System.out.println("[ENDERECO] : " + Long.toHexString(addressL));
 				vdp.writeControlPort(data);
 			} else {
 				vdp.writeControlPort((data >> 16) & 0xFFFF);

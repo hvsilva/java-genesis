@@ -25,6 +25,10 @@ public class AbsoluteLong implements AddressingMode {
 		long address = o.getAddress();
 		long data = o.getData();
 		
+		if(data == 33140) {
+			System.out.println("[DATA] : " + data + " [DATA HEX] : " + Long.toHexString(data));
+		}
+		
 		cpu.bus.write(address, data, Size.WORD);
 	}
 

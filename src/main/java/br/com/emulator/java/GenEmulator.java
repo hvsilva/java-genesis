@@ -255,12 +255,14 @@ public class GenEmulator {
 	}
 
 //	https://wiki.megadrive.org/index.php?title=IO_Registers
-	public void write(long address, long data, Size size) {
+	public void write(long address, long data, Size size) {		
 		
-		System.out.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));		
-	
+		System.out.println("[CALL WRITE]: " + "[ADDRESS : " + Long.toHexString(address) + "]"
+		+ " [SIZE : " + size +  "]"
+		+ " [DATA HEX : " + Long.toHexString(data) +  "]");	
 		
 		long addressL = (address & 0xFF_FFFF);
+		
 		if (size == Size.BYTE) {
 			data = data & 0xFF;
 		} else if (size == Size.WORD) {
@@ -418,7 +420,13 @@ public class GenEmulator {
 			if (size == Size.BYTE) {
 				throw new RuntimeException();
 			} else if (size == Size.WORD) {
-				System.out.println("[ENDERECO] : " + Long.toHexString(addressL));
+				
+				System.out.println("[ENDERECO] : " + Long.toHexString(addressL) + " [DATA] : " + data + " [DATA HEX] : " + Long.toHexString(data));
+				
+				if (data == 33140) {
+					System.out.println("VDP Control Port write 0 ?");					
+				}
+				
 				vdp.writeControlPort(data);
 			} else {
 				vdp.writeControlPort(data >> 16);

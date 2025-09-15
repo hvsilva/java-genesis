@@ -179,6 +179,10 @@ public class MOVE implements GenInstructionHandler {
 		Operation o = cpu.resolveAddressingMode(cpu.PC + 2, Size.WORD, sourceMode, sourceReg);
 		long data = o.getAddressingMode().getWord(o);
 		
+		if(data == 33140) {
+			System.out.println("[DATA] : " + data + " [DATA HEX] : " + Long.toHexString(data));
+		}
+		
 		Operation oDest = cpu.resolveAddressingMode(Size.WORD, mode, register);
 		oDest.setData(data);
 		

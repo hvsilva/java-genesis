@@ -170,6 +170,10 @@ public class VDP {
 		totalCycles += cycles;
 
 		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
+		
+//		if (line == 129) {
+//			totalCycles = 0;
+//		}
 
 		if (totalCycles < 800) {
 			hblank = false;
