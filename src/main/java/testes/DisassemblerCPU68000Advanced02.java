@@ -7,7 +7,7 @@ import emulator03.CPU68000;
 public class DisassemblerCPU68000Advanced02 {
 
 	public static String generateDisassembly(Cartridge cart) {
-		byte[] rom = cart.getROMData();
+		int[] rom = cart.getROMData();
 		StringBuilder sb = new StringBuilder();
 		int pc = 0;
 
@@ -32,7 +32,7 @@ public class DisassemblerCPU68000Advanced02 {
 		return sb.toString();
 	}
 
-	private static String decodeInstruction(int opcode, int pc, byte[] rom, int[] nextPc) {
+	private static String decodeInstruction(int opcode, int pc, int[] rom, int[] nextPc) {
 		// MOVEQ (0x7000–0x70FF)
 		if ((opcode & 0xF100) == 0x7000) {
 			int reg = (opcode >> 9) & 0x7;

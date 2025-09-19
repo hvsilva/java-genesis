@@ -491,6 +491,7 @@ public class GenApp {
 
 		@Override
 		public void run() {
+			
 			if (file.getName().toLowerCase().endsWith(".zip")) {
 //                memory.cartridgeMemory = GBFileLoader.readZipFile(file);
 			} else if (file.getName().toLowerCase().endsWith(".md") || file.getName().toLowerCase().endsWith(".bin")) {

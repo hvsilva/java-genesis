@@ -181,7 +181,7 @@ public class GenVdp {
 		}
 	}
 
-	// https://wiki.megadrive.org/index.php?title=VDP_Ports#Write_2_-_Setting_RAM_address
+// https://wiki.megadrive.org/index.php?title=VDP_Ports#Write_2_-_Setting_RAM_address
 //	First word
 //	Bit	15	14	13	12	11	10	9	8	7	6	5	4	3	2	1	0
 //	Def	CD1-CD0	A13		-										   A0
@@ -309,10 +309,10 @@ public class GenVdp {
 		registers[reg] = dataControl;
 		
 		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X)  registers[reg]=%04X%n", reg, dataControl, dataControl, registers[reg]);
-		
-		if (registers[1] == 116) {
-			System.out.println("modo 5");			
-		}
+//		
+//		if (registers[1] == 116) {
+//			System.out.println("modo 5");			
+//		}
 
 		if (reg == 0x00) {
 			vsi = ((data >> 7) & 1) == 1;
@@ -434,6 +434,7 @@ public class GenVdp {
 			registers[0x13] = dmaLength & 0xFF;
 			
 			System.out.printf("[REGISTERS : %s]%n", registers[1]);
+		
 
 //			addressPort += 2;
 //			fifoAddress[index] = destAddr + 2;	//	FIXME, no es fijo, se actualiza en paralelo mientras se siguen ejecutando instrucciones, hay q contar ciclos de cpu
@@ -923,7 +924,7 @@ public class GenVdp {
 		totalCycles += cycles;
 		
 		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
-		
+
 		if (totalCycles < 800) {
 			hb = 0;
 		} else if (totalCycles >= 800 && totalCycles <= 982) {
@@ -932,7 +933,6 @@ public class GenVdp {
 			if ((registers[1] & 0x40) == 0x40) {
 				if (line < 0xE0) {
 					spritesLine = 0;
-
 					renderBack();
 					renderPlaneA();
 					renderPlaneB();
@@ -940,7 +940,6 @@ public class GenVdp {
 					renderSprites();
 				}
 			}
-
 			if (line < 0xE0) {
 				bus.hLinesPassed--;
 				if (bus.hLinesPassed == -1) {
@@ -948,7 +947,6 @@ public class GenVdp {
 					bus.hLinesPassed = registers[0xA];
 				}
 			}
-
 			line++;
 			totalCycles = 0;
 		}
@@ -961,19 +959,14 @@ public class GenVdp {
 		if (line == 0xE0 && totalCycles == 0) {
 			vip = 1;
 			vb = 1;
-
 			spritesFrame = 0;
-
 			if ((registers[1] & 0x40) == 0x40) {
 				compaginateImage();
-
 				bus.emu.renderScreen();
 			}
-		} else if (line < 0xE0 && ((registers[1] & 0x40) == 0x40)) {    // somente em 0 se o display estiver ligado (desligado está sempre em 1)
-																		
+		} else if (line < 0xE0 && ((registers[1] & 0x40) == 0x40)) {   // somente em 0 se o display estiver ligado (desligado está sempre em 1)													
 			vb = 0;
 		}
-
 	}
 
 	int spritesFrame = 0;

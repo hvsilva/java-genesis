@@ -2,15 +2,13 @@ package com.emulator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.swing.SwingUtilities;
-
 public class Emulator {
 
 	private final CPU68000 cpu;
     private final VDP vdp;
     private final Memory memory;
     
-    private final Video video;
+//    private final Video video;
     
     boolean vintPending;
 	boolean hintPending;
@@ -29,14 +27,7 @@ public class Emulator {
         
         // usa o VDP existente no memory
         this.vdp = memory.getVDP();  
-        
-        this.video = new Video(VDP.WIDTH, VDP.HEIGHT);       
-        
-        vdp.setFrameReadyCallback(() -> {
-            SwingUtilities.invokeLater(() -> {
-                video.draw(vdp.getFrameBuffer());
-            });
-        });
+
       
     }
     
@@ -184,12 +175,6 @@ public class Emulator {
 		}
     }
     
-    public long readInterruptVector(long vector) {
-		long address = memory.readCartridgeWord(vector) << 16;
-		address |= memory.readCartridgeWord(vector + 2);
-		return address;
-	}
-
     /** Para a execução */
     public void stop() {
         running.set(false);
@@ -200,4 +185,14 @@ public class Emulator {
             }
         }
     }
+    
+    public long readInterruptVector(long vector) {
+		long address = memory.readCartridgeWord(vector) << 16;
+		address |= memory.readCartridgeWord(vector + 2);
+		return address;
+	}
+
+	public void renderScreen() {		
+		
+	}
 }

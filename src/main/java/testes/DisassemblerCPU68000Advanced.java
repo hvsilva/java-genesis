@@ -7,7 +7,7 @@ import com.emulator.Cartridge;
 public class DisassemblerCPU68000Advanced {
 	
 	public static String generateDisassembly(Cartridge cart) throws IOException {
-        byte[] rom = cart.getROMData();
+        int[] rom = cart.getROMData();
         StringBuilder sb = new StringBuilder();
         int pc = 0;
 

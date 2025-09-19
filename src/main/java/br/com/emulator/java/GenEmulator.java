@@ -41,7 +41,7 @@ public class GenEmulator {
 
 	public long read(long address, Size size) {
 		
-		System.out.println("[CALL READ]: " + Long.toHexString(address) + " - " + size);		
+		System.out.println("[CALL READ]: " + " [ADDRESS] : " + Long.toHexString(address) + " [SIZE] " + size);		
 		
 		address = address & 0xFF_FFFF; // o mapa de memória 
 		long data;
@@ -96,13 +96,10 @@ public class GenEmulator {
 				} else {
 					data = memory.readCartridgeWord(address) << 16;
 					data |= memory.readCartridgeWord(address + 2);
-
 				}
 			}
 			return data;
-
 		}
-
 		if (address <= 0x3F_FFFF) {
 			if (size == Size.BYTE) {
 				if (address >= 0x200000 && address <= 0x20FFFF && writeSram) {
@@ -421,13 +418,22 @@ public class GenEmulator {
 				throw new RuntimeException();
 			} else if (size == Size.WORD) {
 				
-				System.out.println("[ENDERECO] : " + Long.toHexString(addressL) + " [DATA] : " + data + " [DATA HEX] : " + Long.toHexString(data));
+				System.out.println("[ADDRESS] : " + Long.toHexString(addressL) + " [DATA] : " + data + " [DATA HEX] : " + Long.toHexString(data));
+				
+				
+				System.out.println("[VDP Control Port write (registers) ] " + vdp.registers[1]);	
 				
 				if (data == 33140) {
-					System.out.println("VDP Control Port write 0 ?");					
+					System.out.println("[VDP Control Port write]  data: " + data);					
+				}
+			
+				vdp.writeControlPort(data);				
+				
+				if (vdp.registers[1] == 116) {
+					System.out.println("VDP Control Port write (registers)");
 				}
 				
-				vdp.writeControlPort(data);
+				
 			} else {
 				vdp.writeControlPort(data >> 16);
 				vdp.writeControlPort(data & 0xFFFF);

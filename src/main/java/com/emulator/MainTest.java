@@ -8,8 +8,8 @@ public class MainTest {
 		
 		Cartridge cartridge = new Cartridge("D:\\PROJETOS_EMULADOR\\java-genesis\\roms\\rom_test.bin");
 		
-		Memory memory = new Memory(cartridge.getROMData());
-		CPU68000 cpu = new CPU68000(memory);
+//		Memory memory = new Memory(cartridge.getROMData());
+//		CPU68000 cpu = new CPU68000(memory);
 
 		// Roda alguns ciclos
 		for (int i = 0; i < 20; i++) {
