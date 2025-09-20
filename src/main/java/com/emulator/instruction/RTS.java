@@ -51,14 +51,14 @@ public class RTS implements GenInstructionHandler {
 		long newPC;
 		
 		if ((cpu.SR & 0x2000) == 0x2000) {
-			newPC = cpu.memory.read(cpu.SSP, Size.LONG);
+			newPC = cpu.bus.read(cpu.SSP, Size.LONG);
 			cpu.SSP += 4;
 			
 			cpu.setALong(7, cpu.SSP);
 			
 			cpu.PC = newPC - 2;
 		} else {
-			newPC = cpu.memory.read(cpu.USP, Size.LONG);
+			newPC = cpu.bus.read(cpu.USP, Size.LONG);
 			cpu.USP += 4;
 			
 			cpu.setALong(7, cpu.USP);

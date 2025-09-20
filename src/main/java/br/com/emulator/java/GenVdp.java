@@ -145,6 +145,53 @@ public class GenVdp {
 	int line;
 
 	int[][][] colorsCache = new int[8][8][8];
+	
+	int totalCycles = 0;
+	int scanline = 0;
+
+	public int[][] screenData = new int[320][256];
+
+	public int[][] planeA = new int[320][256];
+	public int[][] planeB = new int[320][256];
+	public int[][] planeBack = new int[320][256];
+
+	public boolean[][] planePrioA = new boolean[320][256];
+	public boolean[][] planePrioB = new boolean[320][256];
+
+	public int[][] planeIndexColorA = new int[320][256];
+	public int[][] planeIndexColorB = new int[320][256];
+
+	public int[][] sprites = new int[320][256];
+	public int[][] spritesIndex = new int[320][256];
+	public boolean[][] spritesPrio = new boolean[320][256];
+
+	public int[][] window = new int[320][256];
+	public int[][] windowIndex = new int[320][256];
+	public boolean[][] windowPrio = new boolean[320][256];
+	
+
+	boolean vramWrite2 = false;
+	boolean cramWrite2 = false;
+	boolean vsramWrite2 = false;
+
+	int vramWriteData;
+	int cramWriteData;
+	int vsramWriteData;
+	int firstData;	
+
+	int spritesFrame = 0;
+	int spritesLine = 0;
+
+	int[][] spritesPerLine = new int[256][80];
+	int[] lastIndexes = new int[256];
+	
+	boolean dmaRecien = false;
+	
+	boolean dmaRequested;	
+
+	int autoIncrementTotal;
+
+	DmaMode dmaModo;
 
 	GenEmulator bus;
 
@@ -361,8 +408,6 @@ public class GenVdp {
 		}
 	}
 
-	boolean dmaRecien = false;
-
 	public void dmaFill() {
 		if (dma == 1) {
 			int dmaLength = (dmaLengthCounterHi << 8) | dmaLengthCounterLo;
@@ -449,22 +494,9 @@ public class GenVdp {
 		}
 	}
 
-	boolean vramWrite2 = false;
-	boolean cramWrite2 = false;
-	boolean vsramWrite2 = false;
-
-	int vramWriteData;
-	int cramWriteData;
-	int vsramWriteData;
-	int firstData;
-
-	DmaMode dmaModo;
-
 	enum DmaMode {
 		MEM_TO_VRAM, VRAM_FILL, VRAM_COPY;
 	}
-
-	boolean dmaRequested;
 
 	public void writeDataPort(int data, Size size) {
 		this.dataPort = data;
@@ -694,8 +726,6 @@ public class GenVdp {
 		vram[address] = data;
 	}
 
-	int autoIncrementTotal;
-
 	private void vramWriteWord(int data) {
 		int word = data;
 
@@ -897,29 +927,6 @@ public class GenVdp {
 		return s;
 	}
 
-	int totalCycles = 0;
-	int scanline = 0;
-
-	public int[][] screenData = new int[320][256];
-
-	public int[][] planeA = new int[320][256];
-	public int[][] planeB = new int[320][256];
-	public int[][] planeBack = new int[320][256];
-
-	public boolean[][] planePrioA = new boolean[320][256];
-	public boolean[][] planePrioB = new boolean[320][256];
-
-	public int[][] planeIndexColorA = new int[320][256];
-	public int[][] planeIndexColorB = new int[320][256];
-
-	public int[][] sprites = new int[320][256];
-	public int[][] spritesIndex = new int[320][256];
-	public boolean[][] spritesPrio = new boolean[320][256];
-
-	public int[][] window = new int[320][256];
-	public int[][] windowIndex = new int[320][256];
-	public boolean[][] windowPrio = new boolean[320][256];
-
 	public void run(int cycles) {
 		totalCycles += cycles;
 		
@@ -968,12 +975,6 @@ public class GenVdp {
 			vb = 0;
 		}
 	}
-
-	int spritesFrame = 0;
-	int spritesLine = 0;
-
-	int[][] spritesPerLine = new int[256][80];
-	int[] lastIndexes = new int[256];
 
 	private void evaluateSprites() {
 		int spriteTableLoc = registers[0x5] & 0x7F; // AT16 is only valid if 128 KB mode is enabled, and allows for

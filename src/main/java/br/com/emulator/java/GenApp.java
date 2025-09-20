@@ -135,7 +135,10 @@ public class GenApp {
 	final JFrame jframe = new JFrame("JAVA MEGADRIVE");
 	private Thread currentGameThread;
 	private MyRunnable currentRunna;
-	private boolean isRomOpened;
+	private boolean isRomOpened;	
+	
+	private int currentMultiplier = 1;
+	public boolean runZ80 = false;
 
 	JCheckBoxMenuItem usaBios;
 	JCheckBoxMenuItem eurBios;
@@ -540,9 +543,6 @@ public class GenApp {
 			loop();
 		}
 	}
-	
-	private int currentMultiplier = 1;
-	public boolean runZ80 = false;
 
 	void loop() {
 		try {

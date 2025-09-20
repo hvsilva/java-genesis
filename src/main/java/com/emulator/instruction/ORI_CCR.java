@@ -57,7 +57,7 @@ public class ORI_CCR implements GenInstructionHandler {
 	}
 	
 	private void ORICCR(int opcode) {
-		long toOr = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long toOr = cpu.bus.read(cpu.PC + 2, Size.WORD);
 		toOr &= 0xFF;	//	8 bits
 		 	 
 	 	cpu.PC += 2;

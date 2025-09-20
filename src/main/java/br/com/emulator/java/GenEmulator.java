@@ -13,7 +13,13 @@ public class GenEmulator {
 	GenJoypad joypad;
 	CPU68000 cpu;
 
-	boolean writeSram;
+	boolean writeSram;	
+
+	boolean hintFrameTaken = false;
+
+	int hLinesPassed = 0;
+	private boolean vintPending;
+	boolean hintPending;
 
 	int[] sram = new int[0x200];
 
@@ -252,7 +258,7 @@ public class GenEmulator {
 	}
 
 //	https://wiki.megadrive.org/index.php?title=IO_Registers
-	public void write(long address, long data, Size size) {		
+	public void write(long address, long data, Size size) {
 		
 		System.out.println("[CALL WRITE]: " + "[ADDRESS : " + Long.toHexString(address) + "]"
 		+ " [SIZE : " + size +  "]"
@@ -487,12 +493,6 @@ public class GenEmulator {
 	public int inPort(int tmp) {
 		throw new RuntimeException("Z80 !");
 	}
-
-	boolean hintFrameTaken = false;
-
-	int hLinesPassed = 0;
-	private boolean vintPending;
-	boolean hintPending;
 
 	// https://www.gamefaqs.com/genesis/916377-genesis/faqs/9755
 	// http://darkdust.net/writings/megadrive/initializing

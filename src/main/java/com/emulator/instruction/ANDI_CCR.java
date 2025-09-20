@@ -56,7 +56,7 @@ public class ANDI_CCR implements GenInstructionHandler {
 	}
 
 	private void ANDICCR(int opcode) {
-		long toAnd = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long toAnd = cpu.bus.read(cpu.PC + 2, Size.WORD);
 		toAnd &= 0xFF;
 
 		cpu.PC += 2;

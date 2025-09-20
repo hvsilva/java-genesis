@@ -79,7 +79,7 @@ public class DBcc implements GenInstructionHandler {
 		int condition = (opcode >> 8) & 0xF;
 		int register = opcode & 0x7;
 	
-		long offset = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long offset = cpu.bus.read(cpu.PC + 2, Size.WORD);
 	
 //		cpu.PC += 2;
 		

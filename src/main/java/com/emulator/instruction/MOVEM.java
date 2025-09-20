@@ -349,8 +349,8 @@ public class MOVEM implements GenInstructionHandler {
 		int register = opcode & 0x7;
 		long data;
 		
-		int registerListMaskA = (int) cpu.memory.read(cpu.PC + 2, Size.BYTE);	// TODO ojo q con pre decrement es al reves la interpretacion
-		int registerListMaskD = (int) cpu.memory.read(cpu.PC + 3, Size.BYTE);
+		int registerListMaskA = (int) cpu.bus.read(cpu.PC + 2, Size.BYTE);	// TODO ojo q con pre decrement es al reves la interpretacion
+		int registerListMaskD = (int) cpu.bus.read(cpu.PC + 3, Size.BYTE);
 
 		cpu.PC += 2;
 		
@@ -414,8 +414,8 @@ public class MOVEM implements GenInstructionHandler {
 		int register = opcode & 0x7;
 		long data;
 		
-		int registerListMaskA = (int) cpu.memory.read(cpu.PC + 2, Size.BYTE);
-		int registerListMaskD = (int) cpu.memory.read(cpu.PC + 3, Size.BYTE);
+		int registerListMaskA = (int) cpu.bus.read(cpu.PC + 2, Size.BYTE);
+		int registerListMaskD = (int) cpu.bus.read(cpu.PC + 3, Size.BYTE);
 
 		cpu.PC += 2;
 		
@@ -466,8 +466,8 @@ public class MOVEM implements GenInstructionHandler {
 		int register = opcode & 0x7;
 		long data;
 		
-		int msb = (int) cpu.memory.read(cpu.PC + 2, Size.BYTE);
-		int lsb = (int) cpu.memory.read(cpu.PC + 3, Size.BYTE);
+		int msb = (int) cpu.bus.read(cpu.PC + 2, Size.BYTE);
+		int lsb = (int) cpu.bus.read(cpu.PC + 3, Size.BYTE);
 		
 		cpu.PC += 2;
 		
@@ -546,8 +546,8 @@ public class MOVEM implements GenInstructionHandler {
 		int register = opcode & 0x7;
 		long data;
 		
-		int msb = (int) cpu.memory.read(cpu.PC + 2, Size.BYTE);
-		int lsb = (int) cpu.memory.read(cpu.PC + 3, Size.BYTE);
+		int msb = (int) cpu.bus.read(cpu.PC + 2, Size.BYTE);
+		int lsb = (int) cpu.bus.read(cpu.PC + 3, Size.BYTE);
 		
 		cpu.PC += 2;
 		

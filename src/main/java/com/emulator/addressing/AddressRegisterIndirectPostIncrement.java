@@ -17,7 +17,7 @@ public class AddressRegisterIndirectPostIncrement implements AddressingMode {
 		long addr = o.getAddress();
 		long data = o.getData();
 
-		cpu.memory.write(addr, (data & 0xFF), Size.BYTE);
+		cpu.bus.write(addr, (data & 0xFF), Size.BYTE);
 	}
 
 	@Override
@@ -25,7 +25,7 @@ public class AddressRegisterIndirectPostIncrement implements AddressingMode {
 		long addr = o.getAddress();
 		long data = o.getData();
 
-		cpu.memory.write(addr, (data & 0xFFFF), Size.WORD);
+		cpu.bus.write(addr, (data & 0xFFFF), Size.WORD);
 	}
 
 	@Override
@@ -33,13 +33,13 @@ public class AddressRegisterIndirectPostIncrement implements AddressingMode {
 		long addr = o.getAddress();
 		long data = o.getData();
 
-		cpu.memory.write(addr, data, Size.LONG);
+		cpu.bus.write(addr, data, Size.LONG);
 	}
 
 	@Override
 	public long getByte(Operation o) {
 		long addr = o.getAddress();
-		long data = cpu.memory.read(addr, Size.BYTE);
+		long data = cpu.bus.read(addr, Size.BYTE);
 		
 		return data;
 	}
@@ -47,7 +47,7 @@ public class AddressRegisterIndirectPostIncrement implements AddressingMode {
 	@Override
 	public long getWord(Operation o) {
 		long addr = o.getAddress();
-		long data = cpu.memory.read(addr, Size.WORD);
+		long data = cpu.bus.read(addr, Size.WORD);
 			 
 		return data;
 	}
@@ -55,7 +55,7 @@ public class AddressRegisterIndirectPostIncrement implements AddressingMode {
 	@Override
 	public long getLong(Operation o) {
 		long addr = o.getAddress();
-		long data = cpu.memory.read(addr, Size.LONG);
+		long data = cpu.bus.read(addr, Size.LONG);
 
 		return data;
 	}

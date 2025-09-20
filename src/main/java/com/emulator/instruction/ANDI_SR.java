@@ -57,7 +57,7 @@ public class ANDI_SR implements GenInstructionHandler {
 	}
 
 	private void ANDISR(int opcode) {
-		long toAnd = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long toAnd = cpu.bus.read(cpu.PC + 2, Size.WORD);
 
 		cpu.PC += 2;
 

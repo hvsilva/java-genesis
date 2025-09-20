@@ -1,51 +1,7 @@
 package com.emulator;
 
-import com.emulator.addressing.AbsoluteLong;
-import com.emulator.addressing.AbsoluteShort;
-import com.emulator.addressing.AddressRegisterDirect;
-import com.emulator.addressing.AddressRegisterIndirect;
-import com.emulator.addressing.AddressRegisterIndirectPostIncrement;
-import com.emulator.addressing.AddressRegisterIndirectPreDecrement;
-import com.emulator.addressing.AddressRegisterWithDisplacement;
-import com.emulator.addressing.AddressRegisterWithIndex;
 import com.emulator.addressing.AddressingMode;
-import com.emulator.addressing.DataRegisterDirect;
-import com.emulator.addressing.ImmediateData;
-import com.emulator.addressing.PCWithDisplacement;
-import com.emulator.addressing.PCWithIndex;
-import com.emulator.instruction.ABCD;
-import com.emulator.instruction.ADD;
-import com.emulator.instruction.ADDQ;
-import com.emulator.instruction.ADDX;
-import com.emulator.instruction.ANDI;
-import com.emulator.instruction.ANDI_CCR;
-import com.emulator.instruction.ANDI_SR;
-import com.emulator.instruction.BCC;
-import com.emulator.instruction.BTST;
-import com.emulator.instruction.CLR;
-import com.emulator.instruction.CMP;
-import com.emulator.instruction.CMPI;
-import com.emulator.instruction.DBcc;
-import com.emulator.instruction.JSR;
-import com.emulator.instruction.LEA;
-import com.emulator.instruction.MOVE;
-import com.emulator.instruction.MOVEA;
-import com.emulator.instruction.MOVEM;
-import com.emulator.instruction.MOVEP;
-import com.emulator.instruction.MOVEQ;
-import com.emulator.instruction.MOVE_FROM_SR;
-import com.emulator.instruction.MOVE_TO_CCR;
-import com.emulator.instruction.MOVE_TO_FROM_USP;
-import com.emulator.instruction.MOVE_TO_SR;
-import com.emulator.instruction.OR;
-import com.emulator.instruction.ORI;
-import com.emulator.instruction.ORI_CCR;
 import com.emulator.instruction.Operation;
-import com.emulator.instruction.RTS;
-import com.emulator.instruction.SUBI;
-import com.emulator.instruction.SUBQ;
-import com.emulator.instruction.Scc;
-import com.emulator.instruction.TST;
 
 import util.OpcodeDecoder;
 
@@ -63,115 +19,23 @@ public class CPU68000 {
 	public long USP;  // Stack Pointer (user) 
 	public int  SR;   // Status Register
 	
-    int cycles = 0;
+	int cycles = 0;
 	
-	public boolean stop = false;
+    int totalInstructions = 0;
+
+	public boolean stop = false;	
+	public boolean print;
+	
+	public Emulator bus;
 
     // Flags simplificadas
-    private boolean flagZ; // Zero
-    private boolean flagN; // Negative
-    private boolean flagC; // Carry
-    private boolean flagV; // Overflow
+
     private boolean flagX; // Extend (necessário para BCD)
 
-    public CPU68000(Memory mem) {
-        this.memory = mem;
-        initInstructions();        
-        this.addressingModes = new AddressingMode[] {
-            new DataRegisterDirect(this),                  // 0
-            new AddressRegisterDirect(this),               // 1
-            new AddressRegisterIndirect(this),             // 2
-            new AddressRegisterIndirectPostIncrement(this),// 3
-            new AddressRegisterIndirectPreDecrement(this), // 4
-            new AddressRegisterWithDisplacement(this),     // 5
-            new AddressRegisterWithIndex(this),            // 6
-            new AbsoluteShort(this),                       // 7, reg=0
-            new AbsoluteLong(this),                        // 7, reg=1
-            new PCWithDisplacement(this),                  // 7, reg=2
-            new PCWithIndex(this),                         // 7, reg=3
-            new ImmediateData(this)                        // 7, reg=4 (normalmente só fonte)
-                                                           // Para reg=5 ou reg=6, pode ser modos reservados ou especiais, adicione se necessário!
-            };
+    public CPU68000(Emulator bus) {
+    	this.bus = bus;
     }
-    
-    /** Inicializa mapa de instruções */
-    private void initInstructions() {
-		new ABCD(this).generate();
-		new ADD(this).generate();
-//		new ADDA(this).generate();
-//		new ADDI(this).generate();
-		new ADDQ(this).generate();
-		new ADDX(this).generate();
-//		new AND(this).generate();
-		new ANDI(this).generate();
-		new ANDI_CCR(this).generate();
-		new ANDI_SR(this).generate();
-//		new ASL(this).generate();
-//		new ASR(this).generate();
-		new BCC(this).generate();
-//		new BCHG(this).generate();
-//		new BCLR(this).generate();
-//		new BSET(this).generate();
-		new BTST(this).generate();
-		new CLR(this).generate();
-		new CMP(this).generate();
-//		new CMPA(this).generate();
-		new CMPI(this).generate();
-//		new CMPM(this).generate();
-		new DBcc(this).generate();
-//		new DIVS(this).generate();
-//		new DIVU(this).generate();
-//		new EOR(this).generate();
-//		new EORI(this).generate();
-//		new EORI_CCR(this).generate();
-//		new EORI_SR(this).generate();
-//		new EXG(this).generate();
-//		new EXT(this).generate();
-//		new JMP(this).generate();
-		new JSR(this).generate();
-		new LEA(this).generate();
-//		new LINK(this).generate();
-//		new LSL(this).generate();
-//		new LSR(this).generate();
-		new MOVE(this).generate();
-		new MOVEA(this).generate();
-		new MOVE_FROM_SR(this).generate();
-		new MOVE_TO_CCR(this).generate();
-		new MOVE_TO_SR(this).generate();
-		new MOVE_TO_FROM_USP(this).generate();
-		new MOVEM(this).generate();
-		new MOVEP(this).generate();
-		new MOVEQ(this).generate();
-//		new MULS(this).generate();
-//		new MULU(this).generate();
-//		new NBCD(this).generate();
-//		new NEG(this).generate();
-//		new NOP(this).generate();
-//		new NOT(this).generate();
-		new OR(this).generate();
-		new ORI(this).generate();
-		new ORI_CCR(this).generate();
-		new ORI_SR(this).generate();
-//		new PEA(this).generate();
-//		new ROR(this).generate();
-//		new ROXL(this).generate();
-//		new ROXR(this).generate();
-//		new RTE(this).generate();
-//		new RTR(this).generate();
-		new RTS(this).generate();
-//		new SBCD(this).generate();
-		new Scc(this).generate();
-//		new STOP(this).generate();
-//		new SUB(this).generate();
-//		new SUBA(this).generate();
-		new SUBI(this).generate();
-		new SUBQ(this).generate();
-//		new SWAP(this).generate();
-//		new TRAP(this).generate();
-		new TST(this).generate();
-//		new UNLK(this).generate();  	
-    }
-    
+
     /** Reset realista (SP e PC vêm da ROM) */
 	public void reset() {
 		SSP = 0;
@@ -180,12 +44,12 @@ public class CPU68000 {
 	
 	public void initialize() {
 		// the processor fetches an initial stack pointer from locations $000000-$000003
-		SSP = memory.read(0, Size.LONG) & 0xFFFFFFFFL;
+		SSP = bus.read(0, Size.LONG) & 0xFFFFFFFFL;
 
 		USP = 0xFFFF_FFFFL;
 
 		// initial PC specified by locations $000004-$000007
-		PC = memory.read(4, Size.LONG) & 0xFFFFFFFFL;
+		PC = bus.read(4, Size.LONG) & 0xFFFFFFFFL;
 
 		for (int i = 0; i < A.length; i++) {
 			A[i] = 0xFFFF_FFFFL;
@@ -196,10 +60,10 @@ public class CPU68000 {
 	}
 	
     /** Executa uma instrução e retorna ciclos gastos */
-    public int runInstruction(boolean print) {    	
+    public int runInstruction(boolean print) {
 
     	// Busca o opcode da memória (bus) na posição do PC (Program Counter)
-    	long opcode = memory.read(PC, Size.WORD); 		
+    	long opcode = bus.read(PC, Size.WORD); 		
 
         GenInstruction instr = instructions[(int) opcode];
 
@@ -233,29 +97,8 @@ public class CPU68000 {
         }
         return cycles;
     }
-
-	/** Estimativa simplificada de ciclos */
-	private int estimateCycles(int opcode) {
-	    if ((opcode & 0xF000) == 0x1000) return 8; // MOVE.B
-	    if ((opcode & 0xF000) == 0x2000) return 8; // MOVE.L
-	    if ((opcode & 0xF000) == 0xD000) return 4; // ADD
-	    if ((opcode & 0xF000) == 0x9000) return 4; // SUB
-	    if (opcode == 0x4E71) return 4; // NOP
-	    return 8; // fallback
-	}    
-
-    private void dumpState(int opcode) {
-        System.out.printf("PC=%08X  OPCODE=%04X%n", PC, opcode);
-        for (int i = 0; i < 8; i++)
-            System.out.printf("D%d=%02X ", i, getDByte(i));
-        System.out.println();
-        for (int i = 0; i < 8; i++)
-            System.out.printf("A%d=%08X ", i, getAByte(i));
-        System.out.printf("SSP=%08X%n", SSP);
-        System.out.printf("Flags [X=%b Z=%b N=%b C=%b V=%b]%n", flagX, flagZ, flagN, flagC, flagV);
-    }
     
-	private void printDebug(long opcode, StringBuilder sb) {			
+	private void printDebug(long opcode, StringBuilder sb) {
 		// Monta informações de debug sobre o estado atual da CPU
 		sb.append(pad4((int) PC) + " - Opcode: " + pad4((int) opcode) + " - SR: " + pad4(SR) + " - SSP: " + pad4((int) SSP) + " - USP: " + pad4((int) USP) + "\r\n");			
 		for (int j = 0; j < 8; j++) {
@@ -267,8 +110,7 @@ public class CPU68000 {
 		}
 		sb.append("\r\n");
 	}
-    
-    int totalInstructions = 0;
+
 	public void addInstruction(int opcode, GenInstruction ins) {
 		GenInstruction instr = instructions[opcode];
 		if (instr != null) {
@@ -378,14 +220,6 @@ public class CPU68000 {
 		flagX = false;
 	}
 
-	public void setC() {
-		flagC = true;
-	}
-
-	public void clearC() {
-		flagC = false;
-	}
-
 	public void clearZ() {
 		SR = bitReset(SR, 2);
 	}
@@ -408,8 +242,7 @@ public class CPU68000 {
 	
 	public void setV() {
 		SR = bitSet(SR, 1);
-	}
-	
+	}	
 
 	public boolean isC() {
 		return bitTest(SR, 0);
@@ -517,24 +350,24 @@ public class CPU68000 {
 
 			if ((SR & 0x2000) == 0x2000) {
 				SSP--;
-				memory.write(SSP, oldPC & 0xFF, Size.BYTE);
+				bus.write(SSP, oldPC & 0xFF, Size.BYTE);
 				SSP--;
-				memory.write(SSP, (oldPC >> 8) & 0xFF, Size.BYTE);
+				bus.write(SSP, (oldPC >> 8) & 0xFF, Size.BYTE);
 				SSP--;
-				memory.write(SSP, (oldPC >> 16) & 0xFF, Size.BYTE);
+				bus.write(SSP, (oldPC >> 16) & 0xFF, Size.BYTE);
 				SSP--;
-				memory.write(SSP, (oldPC >> 24), Size.BYTE);
+				bus.write(SSP, (oldPC >> 24), Size.BYTE);
 
 				setALong(7, SSP);
 			} else {
 				USP--;
-				memory.write(USP, oldPC & 0xFF, Size.BYTE);
+				bus.write(USP, oldPC & 0xFF, Size.BYTE);
 				USP--;
-				memory.write(USP, (oldPC >> 8) & 0xFF, Size.BYTE);
+				bus.write(USP, (oldPC >> 8) & 0xFF, Size.BYTE);
 				USP--;
-				memory.write(USP, (oldPC >> 16) & 0xFF, Size.BYTE);
+				bus.write(USP, (oldPC >> 16) & 0xFF, Size.BYTE);
 				USP--;
-				memory.write(USP, (oldPC >> 24), Size.BYTE);
+				bus.write(USP, (oldPC >> 24), Size.BYTE);
 
 				setALong(7, USP);
 			}
@@ -591,5 +424,18 @@ public class CPU68000 {
 		}
 
 		return taken;
+	}
+
+	public boolean isStopped() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	public void setC() {
+		SR = bitSet(SR, 0);
+	}
+	
+	public void clearC() {
+		SR = bitReset(SR, 0);
 	}
 }

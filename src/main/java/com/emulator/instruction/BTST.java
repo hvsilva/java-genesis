@@ -236,7 +236,7 @@ public class BTST implements GenInstructionHandler {
 		int destReg = (opcode & 0x7);
 		int destMode = (opcode >> 3) & 0x7;
 		
-		long bitNumber = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long bitNumber = cpu.bus.read(cpu.PC + 2, Size.WORD);
 		bitNumber = bitNumber & 0xFF;
 		bitNumber &= 7;
 		
@@ -252,7 +252,7 @@ public class BTST implements GenInstructionHandler {
 		int destReg = (opcode & 0x7);
 		int destMode = (opcode >> 3) & 0x7;
 		
-		long bitNumber = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long bitNumber = cpu.bus.read(cpu.PC + 2, Size.WORD);
 		bitNumber = bitNumber & 0xFF;
 		bitNumber &= 31;
 		

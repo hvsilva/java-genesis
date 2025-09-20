@@ -30,7 +30,7 @@ public class ImmediateData implements AddressingMode {
 	@Override
 	public long getByte(Operation o) {
 		long addr = o.getAddress();
-		long data = cpu.memory.read(addr, Size.WORD);	//	lee 2 bytes
+		long data = cpu.bus.read(addr, Size.WORD);	//	lee 2 bytes
 		data = data & 0xFF;
 		
 		return data;
@@ -39,7 +39,7 @@ public class ImmediateData implements AddressingMode {
 	@Override
 	public long getWord(Operation o) {
 		long addr = o.getAddress();
-		long data = cpu.memory.read(addr, Size.WORD);
+		long data = cpu.bus.read(addr, Size.WORD);
 			 
 		return data;
 	}
@@ -47,7 +47,7 @@ public class ImmediateData implements AddressingMode {
 	@Override
 	public long getLong(Operation o) {
 		long addr = o.getAddress();
-		long data = cpu.memory.read(addr, Size.LONG);
+		long data = cpu.bus.read(addr, Size.LONG);
 		
 		return data;
 	}

@@ -17,7 +17,7 @@ public class AddressRegisterWithIndex implements AddressingMode {
 		long address = o.getAddress();
 		long data = o.getData();
 		
-		cpu.memory.write(address, data, Size.BYTE);
+		cpu.bus.write(address, data, Size.BYTE);
 	}
 
 	@Override
@@ -25,7 +25,7 @@ public class AddressRegisterWithIndex implements AddressingMode {
 		long address = o.getAddress();
 		long data = o.getData();
 		
-		cpu.memory.write(address, data, Size.WORD);
+		cpu.bus.write(address, data, Size.WORD);
 	}
 
 	@Override
@@ -33,13 +33,13 @@ public class AddressRegisterWithIndex implements AddressingMode {
 		long address = o.getAddress();
 		long data = o.getData();
 		
-		cpu.memory.write(address, data, Size.LONG);
+		cpu.bus.write(address, data, Size.LONG);
 	}
 
 	@Override
 	public long getByte(Operation o) {
 		long address = o.getAddress();
-		long data = cpu.memory.read(address, Size.BYTE);
+		long data = cpu.bus.read(address, Size.BYTE);
 		
 		return data;
 	}
@@ -47,7 +47,7 @@ public class AddressRegisterWithIndex implements AddressingMode {
 	@Override
 	public long getWord(Operation o) {
 		long address = o.getAddress();
-		long data = cpu.memory.read(address, Size.WORD);
+		long data = cpu.bus.read(address, Size.WORD);
 		
 		return data;
 	}
@@ -55,7 +55,7 @@ public class AddressRegisterWithIndex implements AddressingMode {
 	@Override
 	public long getLong(Operation o) {
 		long address = o.getAddress();
-		long data = cpu.memory.read(address, Size.LONG);
+		long data = cpu.bus.read(address, Size.LONG);
 
 		return data;
 	}
@@ -63,7 +63,7 @@ public class AddressRegisterWithIndex implements AddressingMode {
 	@Override
 	public void calculateAddress(Operation o, Size size) {
 		int register = o.getRegister();
-		long exten = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long exten = cpu.bus.read(cpu.PC + 2, Size.WORD);
 		int displacement = (int) (exten & 0xFF);		// es 8 bits, siempre el ultimo byte ?
 		
 		cpu.PC += 2;

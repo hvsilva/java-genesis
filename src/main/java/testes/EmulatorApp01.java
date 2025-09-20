@@ -92,14 +92,14 @@ public class EmulatorApp01 extends Application {
         startBtn.setOnAction(ev -> {
             if (emulator != null && !running.get()) {
                 running.set(true);
-                emulator.start();
+//                emulator.start();
             }
         });
 
         stopBtn.setOnAction(ev -> {
             if (emulator != null && running.get()) {
                 running.set(false);
-                emulator.stop();
+//                emulator.stop();
             }
         });
 

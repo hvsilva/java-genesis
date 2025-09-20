@@ -56,7 +56,7 @@ public class ORI_SR implements GenInstructionHandler {
 	}
 	
 	private void ORISR(int opcode) {
-		long toOr = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long toOr = cpu.bus.read(cpu.PC + 2, Size.WORD);
 		
 	 	cpu.PC += 2;
 		

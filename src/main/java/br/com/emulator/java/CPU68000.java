@@ -56,53 +56,31 @@ import util.OpcodeDecoder;
 public class CPU68000 {
 
 	private long[] D = new long[8]; // D0-D7
-
 	private long[] A = new long[8]; // A0-A7 (A7 = USP = User Stack Pointer o SSP)
 
-	public long PC; // Program Counter	
-	
+	public long PC; // Program Counter		
 	public long SSP; // Supervisor SP	
-
 	public long USP; // User SP
-
 	public int SR;
-
-	public boolean stop = false;
 	
+	int cycles = 0;
+
+	public boolean stop = false;	
 	public boolean print;
+	
+
+	GenInstruction[] instructions = new GenInstruction[0x10000];
+	AddressingMode addressingModes[];
+	
+	StringBuilder sb = new StringBuilder();
+
+	private List<Breakpoint> breakpoints = new ArrayList<>();
 
 	public GenEmulator bus;
 
 	CPU68000(GenEmulator bus) {
 		this.bus = bus;
 	}
-
-	int cycles = 0;
-
-	GenInstruction[] instructions = new GenInstruction[0x10000];
-	AddressingMode addressingModes[];
-
-	
-	StringBuilder sb = new StringBuilder();
-
-	private List<Breakpoint> breakpoints = new ArrayList<>();
-
-	public void addBreakpointPC(int pc) {
-	    breakpoints.add(new Breakpoint(Breakpoint.Type.PC, pc, -1));
-	}
-
-	public void addBreakpointVRAM(int addr, int value) {
-	    breakpoints.add(new Breakpoint(Breakpoint.Type.VRAM, addr, value));
-	}
-
-	public void addBreakpointRAM(int addr, int value) {
-	    breakpoints.add(new Breakpoint(Breakpoint.Type.RAM, addr, value));
-	}
-
-	public void addBreakpointCRAM(int addr, int value) {
-	    breakpoints.add(new Breakpoint(Breakpoint.Type.CRAM, addr, value));
-	}
-	
 
 	public int runInstruction(boolean print) {
 	    // Busca o opcode da memória (bus) na posição do PC (Program Counter)
@@ -753,6 +731,22 @@ public class CPU68000 {
 		}
 
 		return taken;
+	}
+	
+	public void addBreakpointPC(int pc) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.PC, pc, -1));
+	}
+
+	public void addBreakpointVRAM(int addr, int value) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.VRAM, addr, value));
+	}
+
+	public void addBreakpointRAM(int addr, int value) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.RAM, addr, value));
+	}
+
+	public void addBreakpointCRAM(int addr, int value) {
+	    breakpoints.add(new Breakpoint(Breakpoint.Type.CRAM, addr, value));
 	}
 	
 	private void printDebug(long opcode) {

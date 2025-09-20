@@ -133,7 +133,7 @@ public class SUBI implements GenInstructionHandler {
 		int mode = (opcode >> 3) & 0x7;
 		int register = (opcode & 0x7);
 	
-		long toSub = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long toSub = cpu.bus.read(cpu.PC + 2, Size.WORD);
  	 	toSub &= 0xFF;	//	last byte
  	 	cpu.PC += 2;
  	 	
@@ -157,7 +157,7 @@ public class SUBI implements GenInstructionHandler {
 		int mode = (opcode >> 3) & 0x7;
 		int register = (opcode & 0x7);
 
-		long toSub = cpu.memory.read(cpu.PC + 2, Size.WORD);
+		long toSub = cpu.bus.read(cpu.PC + 2, Size.WORD);
 	 	cpu.PC += 2;
 
 		Operation o = cpu.resolveAddressingMode(Size.WORD, mode, register);
@@ -173,7 +173,7 @@ public class SUBI implements GenInstructionHandler {
 		int mode = (opcode >> 3) & 0x7;
 		int register = (opcode & 0x7);
 
-		long toSub = cpu.memory.read(cpu.PC + 2, Size.LONG);
+		long toSub = cpu.bus.read(cpu.PC + 2, Size.LONG);
 	 	cpu.PC += 4;
 
 		Operation o = cpu.resolveAddressingMode(Size.LONG, mode, register);
