@@ -242,18 +242,23 @@ public class VDP {
 	}
 
 	private void renderBack() {	
+		
 	}
 
 	private void renderPlaneA() {	
+		
 	}
 
 	private void renderPlaneB() {		
+		
 	}
 
 	private void renderWindow() {	
+		
 	}
 
-	private void renderSprites() {	
+	private void renderSprites() {
+		
 	}
 	
 	// The VDP has a complex system of priorities that can be used to achieve

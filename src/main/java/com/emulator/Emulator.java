@@ -49,6 +49,7 @@ import com.emulator.instruction.EXT;
 import com.emulator.instruction.JMP;
 import com.emulator.instruction.JSR;
 import com.emulator.instruction.LEA;
+import com.emulator.instruction.LINK;
 import com.emulator.instruction.LSL;
 import com.emulator.instruction.LSR;
 import com.emulator.instruction.MOVE;
@@ -148,7 +149,7 @@ public class Emulator {
 		new JMP(cpu).generate();
 		new JSR(cpu).generate();
 		new LEA(cpu).generate();
-//		new LINK(this).generate();
+		new LINK(cpu).generate();
 		new LSL(cpu).generate();
 		new LSR(cpu).generate();
 		new MOVE(cpu).generate();
