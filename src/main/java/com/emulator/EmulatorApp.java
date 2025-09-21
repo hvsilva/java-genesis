@@ -123,23 +123,21 @@ public class EmulatorApp extends JFrame {
 	}
 
 	private void loop() {
-		try {
-			for (;;) {
-				if (!emulator.getCpu().stop) {
-					emulator.getCpu().runInstruction(false); // executa próxima instrução da CPU 68000
-				}
+	    try {
+	        while (running.get()) {   // usa running como condição
+	            if (!emulator.getCpu().stop) {
+	                emulator.getCpu().runInstruction(false);
+	            }
 
-				// roda o VDP (ajuste o número de ciclos conforme necessário)
-				emulator.checkInterrupts(); // se já implementado
-				emulator.getVdp().run(13);
-				emulator.getVdp().dmaFill();
-				emulator.getVdp().dmaFill();
-			}
-		} catch (RuntimeException e) {
-			e.printStackTrace();
-		}
+	            emulator.checkInterrupts();
+	            emulator.getVdp().run(13);
+	            emulator.getVdp().dmaFill();
+	            emulator.getVdp().dmaFill();
+	        }
+	    } catch (RuntimeException e) {
+	        e.printStackTrace();
+	    }
 	}
-
 	public void stop() {
 		running.set(false);
 		if (emuThread != null) {

@@ -1,7 +1,7 @@
 package com.emulator.instruction;
 
-import br.com.emulator.java.CPU68000;
-import br.com.emulator.java.GenInstruction;
+import com.emulator.CPU68000;
+import com.emulator.GenInstruction;
 
 //NAME
 //NOP -- No operation
