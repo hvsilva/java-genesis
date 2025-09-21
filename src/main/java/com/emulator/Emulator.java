@@ -2,6 +2,53 @@ package com.emulator;
 
 import java.util.Random;
 
+import com.emulator.addressing.AbsoluteLong;
+import com.emulator.addressing.AbsoluteShort;
+import com.emulator.addressing.AddressRegisterDirect;
+import com.emulator.addressing.AddressRegisterIndirect;
+import com.emulator.addressing.AddressRegisterIndirectPostIncrement;
+import com.emulator.addressing.AddressRegisterIndirectPreDecrement;
+import com.emulator.addressing.AddressRegisterWithDisplacement;
+import com.emulator.addressing.AddressRegisterWithIndex;
+import com.emulator.addressing.AddressingMode;
+import com.emulator.addressing.DataRegisterDirect;
+import com.emulator.addressing.ImmediateData;
+import com.emulator.addressing.PCWithDisplacement;
+import com.emulator.addressing.PCWithIndex;
+import com.emulator.instruction.ABCD;
+import com.emulator.instruction.ADD;
+import com.emulator.instruction.ADDQ;
+import com.emulator.instruction.ADDX;
+import com.emulator.instruction.ANDI;
+import com.emulator.instruction.ANDI_CCR;
+import com.emulator.instruction.ANDI_SR;
+import com.emulator.instruction.BCC;
+import com.emulator.instruction.BTST;
+import com.emulator.instruction.CLR;
+import com.emulator.instruction.CMP;
+import com.emulator.instruction.CMPI;
+import com.emulator.instruction.DBcc;
+import com.emulator.instruction.JSR;
+import com.emulator.instruction.LEA;
+import com.emulator.instruction.MOVE;
+import com.emulator.instruction.MOVEA;
+import com.emulator.instruction.MOVEM;
+import com.emulator.instruction.MOVEP;
+import com.emulator.instruction.MOVEQ;
+import com.emulator.instruction.MOVE_FROM_SR;
+import com.emulator.instruction.MOVE_TO_CCR;
+import com.emulator.instruction.MOVE_TO_FROM_USP;
+import com.emulator.instruction.MOVE_TO_SR;
+import com.emulator.instruction.OR;
+import com.emulator.instruction.ORI;
+import com.emulator.instruction.ORI_CCR;
+import com.emulator.instruction.ORI_SR;
+import com.emulator.instruction.RTS;
+import com.emulator.instruction.SUBI;
+import com.emulator.instruction.SUBQ;
+import com.emulator.instruction.Scc;
+import com.emulator.instruction.TST;
+
 public class Emulator {
 
 	CPU68000 cpu;
@@ -22,10 +69,105 @@ public class Emulator {
 	int[] banks = new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 
-    public Emulator(Memory memory, VDP vdp, CPU68000 cpu) {
-        this.memory = memory;     	
-        this.vdp = vdp;    
-        this.cpu = cpu;
+    public Emulator(Memory memory) {
+		this.memory = memory;
+		this.cpu = new CPU68000(this);
+		this.vdp = new VDP(this);
+                
+		
+		new ABCD(cpu).generate();
+		new ADD(cpu).generate();
+//		new ADDA(this).generate();
+//		new ADDI(this).generate();
+		new ADDQ(cpu).generate();
+		new ADDX(cpu).generate();
+//		new AND(this).generate();
+		new ANDI(cpu).generate();
+		new ANDI_CCR(cpu).generate();
+		new ANDI_SR(cpu).generate();
+//		new ASL(this).generate();
+//		new ASR(this).generate();
+		new BCC(cpu).generate();
+//		new BCHG(this).generate();
+//		new BCLR(this).generate();
+//		new BSET(this).generate();
+		new BTST(cpu).generate();
+		new CLR(cpu).generate();
+		new CMP(cpu).generate();
+//		new CMPA(this).generate();
+		new CMPI(cpu).generate();
+//		new CMPM(this).generate();
+		new DBcc(cpu).generate();
+//		new DIVS(this).generate();
+//		new DIVU(this).generate();
+//		new EOR(this).generate();
+//		new EORI(this).generate();
+//		new EORI_CCR(this).generate();
+//		new EORI_SR(this).generate();
+//		new EXG(this).generate();
+//		new EXT(this).generate();
+//		new JMP(this).generate();
+		new JSR(cpu).generate();
+		new LEA(cpu).generate();
+//		new LINK(this).generate();
+//		new LSL(this).generate();
+//		new LSR(this).generate();
+		new MOVE(cpu).generate();
+		new MOVEA(cpu).generate();
+		new MOVE_FROM_SR(cpu).generate();
+		new MOVE_TO_CCR(cpu).generate();
+		new MOVE_TO_SR(cpu).generate();
+		new MOVE_TO_FROM_USP(cpu).generate();
+		new MOVEM(cpu).generate();
+		new MOVEP(cpu).generate();
+		new MOVEQ(cpu).generate();
+//		new MULS(this).generate();
+//		new MULU(this).generate();
+//		new NBCD(this).generate();
+//		new NEG(this).generate();
+//		new NOP(this).generate();
+//		new NOT(this).generate();
+		new OR(cpu).generate();
+		new ORI(cpu).generate();
+		new ORI_CCR(cpu).generate();
+		new ORI_SR(cpu).generate();
+//		new PEA(this).generate();
+//		new ROR(this).generate();
+//		new ROXL(this).generate();
+//		new ROXR(this).generate();
+//		new RTE(this).generate();
+//		new RTR(this).generate();
+		new RTS(cpu).generate();
+//		new SBCD(this).generate();
+		new Scc(cpu).generate();
+//		new STOP(this).generate();
+//		new SUB(this).generate();
+//		new SUBA(this).generate();
+		new SUBI(cpu).generate();
+		new SUBQ(cpu).generate();
+//		new SWAP(this).generate();
+//		new TRAP(this).generate();
+		new TST(cpu).generate();
+//		new UNLK(this).generate();  		
+
+		System.out.println("[CPU.TOTALINSTRUCTIONS] :  " + cpu.totalInstructions);
+		
+		cpu.addressingModes = new AddressingMode[] { 
+				new DataRegisterDirect(cpu), 
+				new AddressRegisterDirect(cpu),
+				new AddressRegisterIndirect(cpu), 
+				new AddressRegisterIndirectPostIncrement(cpu),
+				new AddressRegisterIndirectPreDecrement(cpu), 
+				new AddressRegisterWithDisplacement(cpu),
+				new AddressRegisterWithIndex(cpu),
+				new AbsoluteShort(cpu), 
+				new AbsoluteLong(cpu), 
+				new PCWithDisplacement(cpu), 
+				new PCWithIndex(cpu),
+				new ImmediateData(cpu), //somente se for um operando fonte TODO, se estiver escrevendo é StatusRegisterOperand
+		};
+		
+		
     }
     
     // =======================
@@ -237,8 +379,8 @@ public class Emulator {
  			}
 
  		} else {
-// 			System.out.println("NOT MAPPED: " + pad4(address) + " - " + pad4(cpu.PC));
- 			System.err.printf("NOT MAPPED: %06X%n", address);
+ 			System.err.printf("NOT MAPPED: " + pad4(address) + " - " + pad4(cpu.PC));
+// 			System.err.printf("NOT MAPPED: %06X%n", address);
  		}
 
  		return 0;
@@ -358,17 +500,20 @@ public class Emulator {
 	    // =================================================
 	    // 7. Work RAM (0xFF0000 – 0xFFFFFF)
 	    // =================================================
-	    else if (addressL >= 0xFF0000) {	    	
+	    else if (addressL >= 0xFF0000) {	
+	    	
+	    	long addr = (addressL & 0xFFFFFF) - 0xFF0000;
+	    	
 	    	if (size == Size.BYTE) {
-	    		memory.writeRam(addressL, data);
+				memory.writeRam(addr, data);
 			} else if (size == Size.WORD) {
-				memory.writeRam(addressL, (data >> 8));
-				memory.writeRam(addressL + 1, (data & 0xFF));
+				memory.writeRam(addr, (data >> 8));
+				memory.writeRam(addr + 1, (data & 0xFF));
 			} else if (size == Size.LONG) {
-				memory.writeRam(addressL, (data >> 24) & 0xFF);
-				memory.writeRam(addressL + 1, (data >> 16) & 0xFF);
-				memory.writeRam(addressL + 2, (data >> 8) & 0xFF);
-				memory.writeRam(addressL + 3, (data & 0xFF));
+				memory.writeRam(addr, (data >> 24) & 0xFF);
+				memory.writeRam(addr + 1, (data >> 16) & 0xFF);
+				memory.writeRam(addr + 2, (data >> 8) & 0xFF);
+				memory.writeRam(addr + 3, (data & 0xFF));
 			}
 	    }
 
@@ -479,6 +624,15 @@ public class Emulator {
 	
 	public void renderScreen() {		
 		
+	}
+	
+	
+	public final String pad4(long reg) {
+		String s = Long.toHexString(reg).toUpperCase();
+		while (s.length() < 4) {
+			s = "0" + s;
+		}
+		return s;
 	}
 	
 	

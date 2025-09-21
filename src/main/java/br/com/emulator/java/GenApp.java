@@ -116,9 +116,9 @@ import br.com.emulator.java.instruction.UNLK;
 //	MEMORY MAP:	https://en.wikibooks.org/wiki/Genesis_Programming
 public class GenApp {
 
-	GenMemory memory;
-	GenVdp vdp;
 	GenEmulator bus;
+	GenMemory memory;
+	GenVdp vdp;	
 	GenZ80 z80;
 	CPU68000 cpu;
 	GenJoypad joypad;
@@ -171,8 +171,9 @@ public class GenApp {
 		bus = new GenEmulator(this, null, null, null, null, null);
 		memory = new GenMemory();
 		vdp = new GenVdp(bus);
-		z80 = new GenZ80(bus);
 		cpu = new CPU68000(bus);
+		
+		z80 = new GenZ80(bus);		
 		joypad = new GenJoypad();
 
 		bus.memory = memory;
