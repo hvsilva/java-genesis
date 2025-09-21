@@ -83,8 +83,11 @@ import com.emulator.instruction.SUB;
 import com.emulator.instruction.SUBA;
 import com.emulator.instruction.SUBI;
 import com.emulator.instruction.SUBQ;
+import com.emulator.instruction.SWAP;
 import com.emulator.instruction.Scc;
+import com.emulator.instruction.TRAP;
 import com.emulator.instruction.TST;
+import com.emulator.instruction.UNLK;
 
 public class Emulator {
 
@@ -181,10 +184,10 @@ public class Emulator {
 		new SUBA(cpu).generate();
 		new SUBI(cpu).generate();
 		new SUBQ(cpu).generate();
-//		new SWAP(this).generate();
-//		new TRAP(this).generate();
+		new SWAP(cpu).generate();
+		new TRAP(cpu).generate();
 		new TST(cpu).generate();
-//		new UNLK(this).generate();  		
+		new UNLK(cpu).generate();  		
 
 		System.out.println("[CPU.TOTALINSTRUCTIONS] :  " + cpu.totalInstructions);
 		
