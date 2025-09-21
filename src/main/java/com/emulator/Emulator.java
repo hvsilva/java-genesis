@@ -44,6 +44,7 @@ import com.emulator.instruction.MOVE_TO_CCR;
 import com.emulator.instruction.MOVE_TO_FROM_USP;
 import com.emulator.instruction.MOVE_TO_SR;
 import com.emulator.instruction.MULS;
+import com.emulator.instruction.MULU;
 import com.emulator.instruction.NOP;
 import com.emulator.instruction.NOT;
 import com.emulator.instruction.OR;
@@ -132,7 +133,7 @@ public class Emulator {
 		new MOVEP(cpu).generate();
 		new MOVEQ(cpu).generate();
 		new MULS(cpu).generate();
-//		new MULU(this).generate();
+		new MULU(cpu).generate();
 //		new NBCD(this).generate();
 //		new NEG(this).generate();
 		new NOP(cpu).generate();
