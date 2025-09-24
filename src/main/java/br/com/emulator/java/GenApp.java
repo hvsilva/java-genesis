@@ -570,17 +570,13 @@ public class GenApp {
 
 	void renderScreen() {
 		int m = currentMultiplier;
-
 		for (int i = 0; i < 256; i++) {
-			for (int j = 0; j < 320; j++) {
+			for (int j = 0; j < 320; j++) {				
 				int color = vdp.screenData[j][i];
-
 				int pos = ((i * m) * (320 * m)) + (j * m);
-
 				pixels[pos] = color;
 			}
 		}
-
 		jframe.repaint();
 	}
 

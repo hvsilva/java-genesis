@@ -95,6 +95,7 @@ public class Emulator {
 	CPU68000 cpu;
     VDP vdp;
     Memory memory;
+    EmulatorApp emu;
     
 	boolean writeSram;
 	
@@ -110,10 +111,11 @@ public class Emulator {
 	int[] banks = new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 
-    public Emulator(Memory memory) {
+    public Emulator(Memory memory, EmulatorApp emu) {
 		this.memory = memory;
 		this.cpu = new CPU68000(this);
-		this.vdp = new VDP(this);                
+		this.vdp = new VDP(this);     
+		this.emu = emu;
 		
 		new ABCD(cpu).generate();
 		new ADD(cpu).generate();
@@ -660,10 +662,6 @@ public class Emulator {
 		long address = memory.readCartridgeWord(vector) << 16;
 		address |= memory.readCartridgeWord(vector + 2);
 		return address;
-	}
-	
-	public void renderScreen() {		
-		
 	}
 	
 	

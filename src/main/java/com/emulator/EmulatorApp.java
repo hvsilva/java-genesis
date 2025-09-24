@@ -2,12 +2,13 @@ package com.emulator;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -32,6 +33,13 @@ public class EmulatorApp extends JFrame {
 	private final JLabel info;
 	private final Video video;
 
+	
+	private int currentMultiplier = 1;
+	
+	static BufferedImage img = new BufferedImage(320, 256, BufferedImage.TYPE_INT_RGB);
+	
+	private static int[] pixels;
+
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(EmulatorApp::new);
 	}
@@ -40,10 +48,15 @@ public class EmulatorApp extends JFrame {
 		super("Emulador Didático Mega Drive");
 
 		memory = new Memory();
-		emulator = new Emulator(memory);
+		emulator = new Emulator(memory, this);
 
 		cpu = emulator.getCpu();
-		vdp = emulator.getVdp();
+		vdp = emulator.getVdp();			
+
+
+	    // cria buffer inicial
+	    img = new BufferedImage(320, 224, BufferedImage.TYPE_INT_RGB);
+	    pixels = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
 
 		// --- Área de vídeo ---
 		video = new Video(320, 224);
@@ -153,5 +166,10 @@ public class EmulatorApp extends JFrame {
 			ex.printStackTrace();
 			info.setText("Failed to load ROM: " + ex.getMessage());
 		}
+	}
+	
+
+	public void renderScreen() {
+		 video.render(vdp.screenData);
 	}
 }

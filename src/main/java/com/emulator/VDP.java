@@ -1,6 +1,8 @@
 package com.emulator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Arrays;
 import java.util.List;
 
 public class VDP {
@@ -156,12 +158,37 @@ public class VDP {
 	int line;
 
 	// Aqui declaramos a lista de sprites
-	private final List<Sprite> sprites = new ArrayList<>();
+//	private final List<Sprite> sprites = new ArrayList<>();
 
 	private Runnable frameReadyCallback;
 
 	// Total de linhas do quadro (262 para NTSC, 312 para PAL)
 	private final int totalLines = 262;
+	
+	int[][][] colorsCache = new int[8][8][8];
+	
+	public int[][] planeA = new int[320][256];
+	public int[][] planeB = new int[320][256];
+	public int[][] planeBack = new int[320][256];
+	
+	public boolean[][] planePrioA = new boolean[320][256];
+	public boolean[][] planePrioB = new boolean[320][256];
+	
+	public int[][] planeIndexColorA = new int[320][256];
+	public int[][] planeIndexColorB = new int[320][256];
+	
+	public int[][] window = new int[320][256];
+	public int[][] windowIndex = new int[320][256];
+	public boolean[][] windowPrio = new boolean[320][256];
+	
+	public int[][] sprites = new int[320][256];
+	public int[][] spritesIndex = new int[320][256];
+	public boolean[][] spritesPrio = new boolean[320][256];
+	
+	public int[][] screenData = new int[320][256];
+	
+	int[][] spritesPerLine = new int[256][80];
+	int[] lastIndexes = new int[256];
 	
 	Emulator bus;
 	
@@ -214,7 +241,9 @@ public class VDP {
 			spritesFrame = 0;
 			if ((registers[1] & 0x40) == 0x40) {
 				compaginateImage();
-				bus.renderScreen();
+				
+				// depois que a tela está composta, envia para o Video
+				bus.emu.renderScreen();
 			}
 		} else if (line < 0xE0 && ((registers[1] & 0x40) == 0x40)) {   // somente em 0 se o display estiver ligado (desligado está sempre em 1)													
 			vb = 0;
@@ -225,41 +254,980 @@ public class VDP {
 		this.frameReadyCallback = cb;
 	}
 
-	// Primeiro render: só pinta a tela com a cor 0 da CRAM
-	public void renderFrame() {
-		int baseColor = cramToArgb(cram[0] & 0xFFFF); // cor de fundo
-		for (int i = 0; i < framebuffer.length; i++) {
-			framebuffer[i] = baseColor;
+	// ==============================
+    // Camadas de Renderização
+    // ==============================
+    /** Renderiza cor de fundo / backdrop */
+	private void renderBack() {
+		int line = this.line;
+
+		int regC = registers[0xC];
+		boolean rs0 = bitTest(regC, 7);
+		boolean rs1 = bitTest(regC, 0);
+
+		int limitHorTiles;
+		if (rs0 && rs1) {
+			limitHorTiles = 40;
+		} else {
+			limitHorTiles = 32;
+		}
+
+		int backLine = (registers[7] >> 4) & 0x3;
+		int backEntry = (registers[7]) & 0xF;
+		int backIndex = (backLine * 32) + (backEntry * 2);
+		int backColor = cram[backIndex] << 8 | cram[backIndex + 1];
+
+		int r = (backColor >> 1) & 0x7;
+		int g = (backColor >> 5) & 0x7;
+		int b = (backColor >> 9) & 0x7;
+
+		backColor = getColour(r, g, b);
+
+		for (int pixel = 0; pixel < (limitHorTiles * 8); pixel++) {
+			if (!disp) {
+				planeBack[pixel][line] = 0;
+			} else {
+				planeBack[pixel][line] = backColor;
+			}
 		}
 	}
 
-	// Converte entrada da CRAM (9-bit BGR) para 32-bit ARGB
-	private int cramToArgb(int cramValue) {
-		int r = ((cramValue >> 1) & 0x07) * 36;
-		int g = ((cramValue >> 5) & 0x07) * 36;
-		int b = ((cramValue >> 9) & 0x07) * 36;
-		return (0xFF << 24) | (r << 16) | (g << 8) | b;
+	private void renderPlaneA() {
+		int nameTableLocation = registers[2] & 0x38; // bit 6 para modo extendido de vram, no lo emulo
+		nameTableLocation *= 0x400;
+
+		int tileLocator = nameTableLocation;
+
+		int line = this.line;
+
+		int reg10 = registers[0x10];
+		int horScrollSize = reg10 & 3;
+		int verScrollSize = (reg10 >> 4) & 3;
+
+		int horPixelsSize = 0;
+		if (horScrollSize == 0) {
+			horPixelsSize = 32;
+		} else if (horScrollSize == 1) {
+			horPixelsSize = 64;
+		} else {
+			horPixelsSize = 128;
+		}
+
+		int regC = registers[0xC];
+		boolean rs0 = bitTest(regC, 7);
+		boolean rs1 = bitTest(regC, 0);
+
+		int limitHorTiles;
+		if (rs0 && rs1) {
+			limitHorTiles = 40;
+		} else {
+			limitHorTiles = 32;
+		}
+
+		int regD = registers[0xD];
+		int hScrollBase = regD & 0x3F; // bit 6 = mode 128k
+		hScrollBase *= 0x400;
+
+		int regB = registers[0xB];
+		int HS = regB & 0x3;
+		int VS = (regB >> 2) & 0x1;
+
+		int vertTileScreen = (line / 8);
+		int scrollMap = 0;
+		int scrollDataVer = 0;
+		if (VS == 0) { // full screen scrolling
+			scrollDataVer = vsram[0] << 8;
+			scrollDataVer |= vsram[1];
+
+			if (verScrollSize == 0) { // 32 tiles (0x20)
+				scrollMap = (scrollDataVer + line) & 0xFF; // 32 * 8 lineas = 0x100
+				if (horScrollSize == 0) {
+					tileLocator += ((scrollMap / 8) * (0x40));
+				} else if (horScrollSize == 1) {
+					tileLocator += ((scrollMap / 8) * (0x80));
+				} else {
+					tileLocator += ((scrollMap / 8) * (0x100));
+				}
+
+			} else if (verScrollSize == 1) { // 64 tiles (0x40)
+				scrollMap = (scrollDataVer + line) & 0x1FF; // 64 * 8 lineas = 0x200
+				tileLocator += ((scrollMap / 8) * 0x80);
+
+			} else {
+				scrollMap = (scrollDataVer + line) & 0x3FF; // 128 * 8 lineas = 0x400
+				tileLocator += ((scrollMap / 8) * 0x100);
+			}
+
+		} else { // 16 columns (2 tiles) scrolling
+			System.out.println();
+		}
+
+		long scrollDataHor = 0;
+		long scrollTile = 0;
+		if (HS == 0b00) { // entire screen is scrolled at once by one longword in the horizontal scroll
+							// table
+			scrollDataHor = vram[hScrollBase] << 8;
+			scrollDataHor |= vram[hScrollBase + 1];
+
+			if (horScrollSize == 0) { // 32 tiles
+				scrollDataHor &= 0xFF;
+				if (scrollDataHor != 0) {
+
+					scrollDataHor = 0x100 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+
+			} else if (horScrollSize == 1) { // 64 tiles
+				scrollDataHor &= 0x1FF;
+				if (scrollDataHor != 0) {
+
+					scrollDataHor = 0x200 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			} else {
+				scrollDataHor &= 0xFFF; // 128 tiles
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x1000 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			}
+
+		} else if (HS == 0b10) { // long scrolls 8 pixels
+			int scrollLine = hScrollBase + ((line / 8) * 32); // 32 bytes por 8 scanlines
+
+			scrollDataHor = vram[scrollLine] << 8;
+			scrollDataHor |= vram[scrollLine + 1];
+
+			if (scrollDataHor != 0) {
+				if (horScrollSize == 0) { // 32 tiles
+					scrollDataHor &= 0xFF;
+
+					scrollDataHor = 0x100 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+
+				} else if (horScrollSize == 1) { // 64 tiles
+					scrollDataHor &= 0x1FF;
+
+					scrollDataHor = 0x200 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+
+				} else { // 128 tiles
+					scrollDataHor &= 0x3FF;
+
+					scrollDataHor = 0x400 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			}
+
+		} else if (HS == 0b11) { // scroll one scanline
+			int scrollLine = hScrollBase + ((line) * 4); // 4 bytes por 1 scanline
+
+			scrollDataHor = vram[scrollLine] << 8;
+			scrollDataHor |= vram[scrollLine + 1];
+
+			if (horScrollSize == 0) { // 32 tiles
+				scrollDataHor &= 0xFF;
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x100 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+
+			} else if (horScrollSize == 1) { // 64 tiles
+				scrollDataHor &= 0x1FF;
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x200 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+
+			} else {
+				scrollDataHor &= 0x3FF;
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x400 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			}
+
+		}
+
+		int loc = tileLocator;
+		for (int pixel = 0; pixel < (limitHorTiles * 8); pixel++) {
+			loc = (int) (((pixel + scrollDataHor)) % (horPixelsSize * 8)) / 8;
+
+			int vertOffset = 0;
+			if (VS == 1) {
+				int scrollLine = (pixel / 16) * 4; // 32 bytes por 8 scanlines
+
+				scrollDataVer = vsram[scrollLine] << 8;
+				scrollDataVer |= vsram[scrollLine + 1];
+
+				if (verScrollSize == 0) { // 32 tiles (0x20)
+					scrollMap = (scrollDataVer + line) & 0xFF; // 32 * 8 lineas = 0x100
+					if (horScrollSize == 0) {
+						vertOffset += ((scrollMap / 8) * (0x40));
+					} else if (horScrollSize == 1) {
+						vertOffset += ((scrollMap / 8) * (0x80));
+					} else {
+						vertOffset += ((scrollMap / 8) * (0x100));
+					}
+
+				} else if (verScrollSize == 1) { // 64 tiles (0x40)
+					scrollMap = (scrollDataVer + line) & 0x1FF; // 64 * 8 lineas = 0x200
+					vertOffset += ((scrollMap / 8) * 0x80);
+
+				} else {
+					scrollMap = (scrollDataVer + line) & 0x3FF; // 128 * 8 lineas = 0x400
+					vertOffset += ((scrollMap / 8) * 0x100);
+				}
+			}
+
+			loc = tileLocator + (loc * 2);
+			loc += vertOffset;
+
+			int nameTable = vram[loc] << 8;
+			nameTable |= vram[loc + 1];
+
+//			An entry in a name table is 16 bits, and works as follows:
+//			15			14 13	12				11		   			10 9 8 7 6 5 4 3 2 1 0
+//			Priority	Palette	Vertical Flip	Horizontal Flip		Tile Index
+			int tileIndex = (nameTable & 0x07FF); // cada tile ocupa 32 bytes
+
+			boolean horFlip = bitTest(nameTable, 11);
+			boolean vertFlip = bitTest(nameTable, 12);
+			int paletteLineIndex = (nameTable >> 13) & 0x3;
+			boolean priority = bitTest(nameTable, 15);
+
+			int paletteLine = paletteLineIndex * 32; // 16 colores por linea, 2 bytes por color
+
+			tileIndex *= 0x20;
+
+			int filas = (scrollMap % 8);
+
+			int pointVert;
+			if (vertFlip) {
+				pointVert = (filas - 7) * -1;
+			} else {
+				pointVert = filas;
+			}
+
+			int pixelInTile = (int) ((pixel + scrollDataHor) % 8);
+
+			int point = pixelInTile;
+			if (horFlip) {
+				point = (pixelInTile - 7) * -1;
+			}
+
+			if (!disp) {
+				planeA[pixel][line] = 0;
+				planePrioA[pixel][line] = false;
+				planeIndexColorA[pixel][line] = 0;
+			} else {
+				point /= 2;
+
+				int grab = (tileIndex + point) + (pointVert * 4);
+				int data = vram[grab];
+
+				int pixel1;
+				if ((pixelInTile % 2) == 0) {
+					if (horFlip) {
+						pixel1 = data & 0x0F;
+					} else {
+						pixel1 = (data & 0xF0) >> 4;
+					}
+				} else {
+					if (horFlip) {
+						pixel1 = (data & 0xF0) >> 4;
+					} else {
+						pixel1 = data & 0x0F;
+					}
+				}
+
+				int colorIndex1 = paletteLine + (pixel1 * 2);
+
+				int color1 = cram[colorIndex1] << 8 | cram[colorIndex1 + 1];
+
+				int r = (color1 >> 1) & 0x7;
+				int g = (color1 >> 5) & 0x7;
+				int b = (color1 >> 9) & 0x7;
+
+				int theColor1 = getColour(r, g, b);
+
+				planeA[pixel][line] = theColor1;
+				planePrioA[pixel][line] = priority;
+				planeIndexColorA[pixel][line] = pixel1;
+			}
+		}
 	}
 
-	private void renderBack() {	
-		
+	private void renderPlaneB() {
+		int nameTableLocation = (registers[4] & 0x7) << 3; // bit 3 para modo extendido de vram, no lo emulo
+		nameTableLocation *= 0x400;
+
+		int tileLocator = nameTableLocation;
+
+		int reg10 = registers[0x10];
+		int horScrollSize = reg10 & 3;
+		int verScrollSize = (reg10 >> 4) & 3;
+
+		int horPixelsSize = 0;
+		if (horScrollSize == 0) {
+			horPixelsSize = 32;
+		} else if (horScrollSize == 1) {
+			horPixelsSize = 64;
+		} else {
+			horPixelsSize = 128;
+		}
+
+		int regC = registers[0xC];
+		boolean rs0 = bitTest(regC, 7);
+		boolean rs1 = bitTest(regC, 0);
+
+		int limitHorTiles;
+		if (rs0 && rs1) {
+			limitHorTiles = 40;
+		} else {
+			limitHorTiles = 32;
+		}
+
+		int line = this.line;
+
+		int regD = registers[0xD];
+		int hScrollBase = regD & 0x3F; // bit 6 = mode 128k
+		hScrollBase *= 0x400;
+
+		int regB = registers[0xB];
+		int HS = regB & 0x3;
+		int VS = (regB >> 2) & 0x1;
+
+		int vertTileScreen = (line / 8);
+		int scrollMap = 0;
+		int scrollDataVer = 0;
+		if (VS == 0) { // full screen scrolling
+			scrollDataVer = vsram[2] << 8;
+			scrollDataVer |= vsram[3];
+
+			if (verScrollSize == 0) { // 32 tiles (0x20)
+				scrollMap = (scrollDataVer + line) & 0xFF; // 32 * 8 lineas = 0x100
+				if (horScrollSize == 0) {
+					tileLocator += ((scrollMap / 8) * (0x40));
+				} else if (horScrollSize == 1) {
+					tileLocator += ((scrollMap / 8) * (0x80));
+				} else {
+					tileLocator += ((scrollMap / 8) * (0x100));
+				}
+
+			} else if (verScrollSize == 1) { // 64 tiles (0x40)
+				scrollMap = (scrollDataVer + line) & 0x1FF; // 64 * 8 lineas = 0x200
+				tileLocator += ((scrollMap / 8) * 0x80);
+
+			} else {
+				scrollMap = (scrollDataVer + line) & 0x3FF; // 128 * 8 lineas = 0x400
+				tileLocator += ((scrollMap / 8) * 0x100);
+			}
+
+		} else { // 16 columns (2 tiles) scrolling
+//			throw new RuntimeException();
+			System.out.println("16 vert scroll");
+		}
+
+		long scrollDataHor = 0;
+		long scrollTile = 0;
+		if (HS == 0b00) { // entire screen is scrolled at once by one longword in the horizontal scroll
+							// table
+			scrollDataHor = vram[hScrollBase + 2] << 8;
+			scrollDataHor |= vram[hScrollBase + 3];
+
+			if (horScrollSize == 0) { // 32 tiles
+				scrollDataHor &= 0xFF;
+				if (scrollDataHor != 0) {
+
+					scrollDataHor = 0x100 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+
+			} else if (horScrollSize == 1) { // 64 tiles
+				scrollDataHor &= 0x1FF;
+				if (scrollDataHor != 0) {
+
+					scrollDataHor = 0x200 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			} else {
+				scrollDataHor &= 0xFFF; // 128 tiles
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x1000 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			}
+
+		} else if (HS == 0b10) { // long scrolls 8 pixels
+			int scrollLine = hScrollBase + ((line / 8) * 32); // 32 bytes por 8 scanlines
+
+			scrollDataHor = vram[scrollLine + 2] << 8;
+			scrollDataHor |= vram[scrollLine + 3];
+
+			if (scrollDataHor != 0) {
+				if (horScrollSize == 0) { // 32 tiles
+					scrollDataHor &= 0xFF;
+
+					scrollDataHor = 0x100 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+
+				} else if (horScrollSize == 1) { // 64 tiles
+					scrollDataHor &= 0x1FF;
+
+					scrollDataHor = 0x200 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+
+				} else { // 128 tiles
+					scrollDataHor &= 0x3FF;
+
+					scrollDataHor = 0x400 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			}
+
+		} else if (HS == 0b11) { // scroll one scanline
+			int scrollLine = hScrollBase + ((line) * 4); // 4 bytes por 1 scanline
+
+			scrollDataHor = vram[scrollLine + 2] << 8;
+			scrollDataHor |= vram[scrollLine + 3];
+
+			if (horScrollSize == 0) { // 32 tiles
+				scrollDataHor &= 0xFF;
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x100 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+
+			} else if (horScrollSize == 1) { // 64 tiles
+				scrollDataHor &= 0x1FF;
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x200 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+
+			} else {
+				scrollDataHor &= 0x3FF;
+
+				if (scrollDataHor != 0) {
+					scrollDataHor = 0x400 - scrollDataHor;
+					scrollTile = scrollDataHor / 8;
+				}
+			}
+		}
+
+		int loc = tileLocator;
+		for (int pixel = 0; pixel < (limitHorTiles * 8); pixel++) {
+			loc = (int) (((pixel + scrollDataHor)) % (horPixelsSize * 8)) / 8;
+
+			int vertOffset = 0;
+			if (VS == 1) {
+				int scrollLine = (pixel / 16) * 4; // 32 bytes por 8 scanlines
+
+				scrollDataVer = vsram[scrollLine + 2] << 8;
+				scrollDataVer |= vsram[scrollLine + 3];
+
+				if (verScrollSize == 0) { // 32 tiles (0x20)
+					scrollMap = (scrollDataVer + line) & 0xFF; // 32 * 8 lineas = 0x100
+					if (horScrollSize == 0) {
+						vertOffset += ((scrollMap / 8) * (0x40));
+					} else if (horScrollSize == 1) {
+						vertOffset += ((scrollMap / 8) * (0x80));
+					} else {
+						vertOffset += ((scrollMap / 8) * (0x100));
+					}
+
+				} else if (verScrollSize == 1) { // 64 tiles (0x40)
+					scrollMap = (scrollDataVer + line) & 0x1FF; // 64 * 8 lineas = 0x200
+					vertOffset += ((scrollMap / 8) * 0x80);
+
+				} else {
+					scrollMap = (scrollDataVer + line) & 0x3FF; // 128 * 8 lineas = 0x400
+					vertOffset += ((scrollMap / 8) * 0x100);
+				}
+			}
+
+			loc = tileLocator + (loc * 2);
+			loc += vertOffset;
+
+			int nameTable = vram[loc] << 8;
+			nameTable |= vram[loc + 1];
+
+//			An entry in a name table is 16 bits, and works as follows:
+//			15			14 13	12				11		   			10 9 8 7 6 5 4 3 2 1 0
+//			Priority	Palette	Vertical Flip	Horizontal Flip		Tile Index
+			int tileIndex = (nameTable & 0x07FF); // cada tile ocupa 32 bytes
+
+			boolean horFlip = bitTest(nameTable, 11);
+			boolean vertFlip = bitTest(nameTable, 12);
+			int paletteLineIndex = (nameTable >> 13) & 0x3;
+			boolean priority = bitTest(nameTable, 15);
+
+			int paletteLine = paletteLineIndex * 32; // 16 colores por linea, 2 bytes por color
+
+			tileIndex *= 0x20;
+
+			int filas = (scrollMap % 8);
+
+			int pointVert;
+			if (vertFlip) {
+				pointVert = (filas - 7) * -1;
+			} else {
+				pointVert = filas;
+			}
+
+			int pixelInTile = (int) ((pixel + scrollDataHor) % 8);
+
+			int point = pixelInTile;
+			if (horFlip) {
+				point = (pixelInTile - 7) * -1;
+			}
+
+			if (!disp) {
+				planeB[pixel][line] = 0;
+				planePrioB[pixel][line] = false;
+				planeIndexColorB[pixel][line] = 0;
+			} else {
+				point /= 2;
+
+				int grab = (tileIndex + point) + (pointVert * 4);
+				int data = vram[grab];
+
+				int pixel1;
+				if ((pixelInTile % 2) == 0) {
+					if (horFlip) {
+						pixel1 = data & 0x0F;
+					} else {
+						pixel1 = (data & 0xF0) >> 4;
+					}
+				} else {
+					if (horFlip) {
+						pixel1 = (data & 0xF0) >> 4;
+					} else {
+						pixel1 = data & 0x0F;
+					}
+				}
+
+				int colorIndex1 = paletteLine + (pixel1 * 2);
+				int color1 = cram[colorIndex1] << 8 | cram[colorIndex1 + 1];
+
+				int r = (color1 >> 1) & 0x7;
+				int g = (color1 >> 5) & 0x7;
+				int b = (color1 >> 9) & 0x7;
+
+				int theColor1 = getColour(r, g, b);
+
+				planeB[pixel][line] = theColor1;
+				planePrioB[pixel][line] = priority;
+				planeIndexColorB[pixel][line] = pixel1;
+			}
+		}
 	}
 
-	private void renderPlaneA() {	
-		
-	}
+	private void renderWindow() {
+		int reg12 = registers[0x12];
+		int windowVert = reg12 & 0x1F;
+		boolean down = ((reg12 & 0x80) == 0x80) ? true : false;
 
-	private void renderPlaneB() {		
-		
-	}
+		if (windowVert != 0) {
 
-	private void renderWindow() {	
-		
+			int line = this.line;
+			int vertTile = (line / 8);
+
+			int vertLimit = (windowVert * 8);
+
+			if (!down) {
+				if (line >= vertLimit) {
+					return;
+				}
+			} else {
+				if (line < vertLimit) {
+					return;
+				}
+			}
+
+			int regC = registers[0xC];
+			boolean rs0 = bitTest(regC, 7);
+			boolean rs1 = bitTest(regC, 0);
+
+			int limitHorTiles;
+			int nameTableLocation;
+			int tileLocator;
+			if (rs0 && rs1) {
+				nameTableLocation = registers[0x3] & 0x3C;  // WD11 is ignored if the display resolution is 320px wide
+															// (H40), which limits the Window nametable address to
+															// multiples of $1000.
+				nameTableLocation *= 0x400;
+
+				limitHorTiles = 40; // H40 mode
+
+				tileLocator = nameTableLocation + (128 * vertTile);
+			} else {
+				nameTableLocation = registers[0x3] & 0x3E; // bit 6 = 128k mode
+				nameTableLocation *= 0x400;
+
+				limitHorTiles = 32; // H32 mode
+
+				tileLocator = nameTableLocation + (64 * vertTile);
+			}
+
+			for (int horTile = 0; horTile < limitHorTiles; horTile++) {
+				int loc = tileLocator;
+
+				int nameTable = vram[loc] << 8;
+				nameTable |= vram[loc + 1];
+
+				tileLocator += 2;
+
+//				An entry in a name table is 16 bits, and works as follows:
+//				15			14 13	12				11		   			10 9 8 7 6 5 4 3 2 1 0
+//				Priority	Palette	Vertical Flip	Horizontal Flip		Tile Index
+				int tileIndex = (nameTable & 0x07FF); // cada tile ocupa 32 bytes
+
+				boolean horFlip = bitTest(nameTable, 11);
+				boolean vertFlip = bitTest(nameTable, 12);
+				int paletteLineIndex = (nameTable >> 13) & 0x3;
+				boolean priority = bitTest(nameTable, 15);
+
+				int paletteLine = paletteLineIndex * 32; // 16 colores por linea, 2 bytes por color
+
+				tileIndex *= 0x20;
+
+				int filas = (line % 8);
+
+				int pointVert;
+				if (vertFlip) {
+					pointVert = (filas - 7) * -1;
+				} else {
+					pointVert = filas;
+				}
+				for (int k = 0; k < 4; k++) {
+					int point;
+					if (horFlip) {
+						point = (k - 3) * -1;
+					} else {
+						point = k;
+					}
+
+					int po = horTile * 8 + (k * 2);
+
+					if (!disp) {
+						window[po][line] = 0;
+						window[po + 1][line] = 0;
+
+						windowPrio[po][line] = false;
+						windowPrio[po + 1][line] = false;
+
+						windowIndex[po][line] = 0;
+						windowIndex[po + 1][line] = 0;
+					} else {
+						int grab = (tileIndex + point) + (pointVert * 4);
+						int data = vram[grab];
+
+						int pixel1, pixel2;
+						if (horFlip) {
+							pixel1 = data & 0x0F;
+							pixel2 = (data & 0xF0) >> 4;
+						} else {
+							pixel1 = (data & 0xF0) >> 4;
+							pixel2 = data & 0x0F;
+						}
+
+						int colorIndex1 = paletteLine + (pixel1 * 2);
+						int colorIndex2 = paletteLine + (pixel2 * 2);
+
+						int color1 = cram[colorIndex1] << 8 | cram[colorIndex1 + 1];
+						int color2 = cram[colorIndex2] << 8 | cram[colorIndex2 + 1];
+
+						int r = (color1 >> 1) & 0x7;
+						int g = (color1 >> 5) & 0x7;
+						int b = (color1 >> 9) & 0x7;
+
+						int r2 = (color2 >> 1) & 0x7;
+						int g2 = (color2 >> 5) & 0x7;
+						int b2 = (color2 >> 9) & 0x7;
+
+						int theColor1 = getColour(r, g, b);
+						int theColor2 = getColour(r2, g2, b2);
+
+						window[po][line] = theColor1;
+						window[po + 1][line] = theColor2;
+
+						windowPrio[po][line] = priority;
+						windowPrio[po + 1][line] = priority;
+
+						windowIndex[po][line] = pixel1;
+						windowIndex[po + 1][line] = pixel2;
+					}
+				}
+			}
+		}
 	}
 
 	private void renderSprites() {
-		
+		int spriteTableLoc = registers[0x5] & 0x7F; // AT16 is only valid if 128 KB mode is enabled, and allows for
+													// rebasing the Sprite Attribute Table to the second 64 KB of VRAM.
+		int spriteTable = spriteTableLoc * 0x200;
+
+		long linkData = 0xFF;
+		long verticalPos;
+
+		int line = this.line;
+
+		long baseAddress = spriteTable;
+		int[] spritesInLine = spritesPerLine[line];
+		int ind = 0;
+		int currSprite = spritesInLine[0];
+
+		int[] priors = new int[320];
+
+		while (currSprite != -1) {
+			baseAddress = spriteTable + (currSprite * 8);
+
+			int byte0 = vram[(int) (baseAddress)];
+			int byte1 = vram[(int) (baseAddress + 1)];
+			int byte2 = vram[(int) (baseAddress + 2)];
+			int byte3 = vram[(int) (baseAddress + 3)];
+			int byte4 = vram[(int) (baseAddress + 4)];
+			int byte5 = vram[(int) (baseAddress + 5)];
+			int byte6 = vram[(int) (baseAddress + 6)];
+			int byte7 = vram[(int) (baseAddress + 7)];
+
+			linkData = byte3 & 0x7F;
+			verticalPos = ((byte0 & 0x1) << 8) | byte1; // bit 9 interlace mode only
+
+//			if (linkData == 0) {
+//				return;
+//			}
+
+			int horSize = (byte2 >> 2) & 0x3;
+			int verSize = byte2 & 0x3;
+
+			int horSizePixels = (horSize + 1) * 8;
+			int verSizePixels = (verSize + 1) * 8;
+
+			int nextSprite = (int) ((linkData * 8) + spriteTable);
+			baseAddress = nextSprite;
+
+			int realY = (int) (verticalPos - 128);
+
+			spritesFrame++;
+			spritesLine++;
+			if (spritesLine >= 20) {
+				return;
+			}
+
+			int pattern = ((byte4 & 0x7) << 8) | byte5;
+			int palette = (byte4 >> 5) & 0x3;
+
+			boolean priority = ((byte4 >> 7) & 0x1) == 1 ? true : false;
+			boolean verFlip = ((byte4 >> 4) & 0x1) == 1 ? true : false;
+			boolean horFlip = ((byte4 >> 3) & 0x1) == 1 ? true : false;
+
+			int horizontalPos = ((byte6 & 0x1) << 8) | byte7;
+			int horOffset = horizontalPos - 128;
+
+			int spriteLine = (int) ((line - realY) % verSizePixels);
+
+			int pointVert;
+			if (verFlip) {
+				pointVert = (spriteLine - (verSizePixels - 1)) * -1;
+			} else {
+				pointVert = spriteLine;
+			}
+
+			for (int cellHor = 0; cellHor < (horSize + 1); cellHor++) {
+				// 16 bytes por cell de 8x8
+				// cada linea dentro de una cell de 8 pixeles, ocupa 4 bytes (o sea, la mitad
+				// del ancho en bytes)
+				int currentVerticalCell = pointVert / 8;
+				int vertLining = (currentVerticalCell * 32) + ((pointVert % 8) * 4);
+
+				int cellH = cellHor;
+				if (horFlip) {
+					cellH = (cellHor * -1) + horSize;
+				}
+				int horLining = vertLining + (cellH * ((verSize + 1) * 32));
+				for (int i = 0; i < 4; i++) {
+					int sliver = i;
+					if (horFlip) {
+						sliver = (i * -1) + 3;
+					}
+
+					int grab = (pattern * 0x20) + (horLining) + sliver;
+					if (grab < 0) {
+						continue; // FIXME guardar en cache de sprites yPos y otros atrib
+					}
+					int data = vram[grab];
+
+					int pixel1, pixel2;
+					if (horFlip) {
+						pixel1 = data & 0x0F;
+						pixel2 = (data & 0xF0) >> 4;
+					} else {
+						pixel1 = (data & 0xF0) >> 4;
+						pixel2 = data & 0x0F;
+					}
+
+					int paletteLine = palette * 32;
+
+					int colorIndex1 = paletteLine + (pixel1 * 2);
+					int colorIndex2 = paletteLine + (pixel2 * 2);
+
+					int color1;
+					if (pixel1 == 0) {
+						if (horOffset >= 0 && horOffset < 320) {
+							if (spritesIndex[horOffset][line] == 0) { // solo pisa si la prioridad anterior era 0
+								spritesIndex[horOffset][line] = pixel1;
+								spritesPrio[horOffset][line] = priority;
+							}
+						}
+					} else {
+						if (horOffset >= 0 && horOffset < 320) {
+							if (priors[horOffset] == 0 || (priors[horOffset] == 1 && priority)) {
+								if (priority) {
+									priors[horOffset] = 1;
+								}
+
+								color1 = cram[colorIndex1] << 8 | cram[colorIndex1 + 1];
+
+								int r = (color1 >> 1) & 0x7;
+								int g = (color1 >> 5) & 0x7;
+								int b = (color1 >> 9) & 0x7;
+
+								int theColor1 = getColour(r, g, b);
+
+								sprites[horOffset][line] = theColor1;
+								spritesIndex[horOffset][line] = pixel1;
+								spritesPrio[horOffset][line] = priority;
+							}
+						}
+					}
+
+					int color2;
+					int horOffset2 = horOffset + 1;
+					if (pixel2 == 0) {
+						if (horOffset2 >= 0 && horOffset2 < 320) {
+							if (spritesIndex[horOffset2][line] == 0) { // solo pisa si la prioridad anterior era 0
+								spritesIndex[horOffset2][line] = pixel2;
+								spritesPrio[horOffset2][line] = priority;
+							}
+						}
+					} else {
+						if (horOffset2 >= 0 && horOffset2 < 320) {
+							if (priors[horOffset2] == 0 || (priors[horOffset2] == 1 && priority)) {
+								if (priority) {
+									priors[horOffset2] = 1;
+								}
+
+								color2 = cram[colorIndex2] << 8 | cram[colorIndex2 + 1];
+
+								int r2 = (color2 >> 1) & 0x7;
+								int g2 = (color2 >> 5) & 0x7;
+								int b2 = (color2 >> 9) & 0x7;
+
+								int theColor2 = getColour(r2, g2, b2);
+
+								sprites[horOffset2][line] = theColor2;
+								spritesIndex[horOffset2][line] = pixel2;
+								spritesPrio[horOffset2][line] = priority;
+							}
+						}
+					}
+
+					horOffset += 2;
+				}
+			}
+
+			ind++;
+			currSprite = spritesInLine[ind];
+		}
 	}
+	
+    /** Renderiza o fundo (background color) */
+//    private void renderBack() {
+//        for (int y = 0; y < 224; y++) {
+//            for (int x = 0; x < 320; x++) {
+//                screenData[x][y] = bgColor;
+//            }
+//        }
+//    }
+
+    /** Renderiza o plano A (tilemap) */
+//    private void renderPlaneA() {
+//        // TODO: buscar no VRAM a tilemap de plano A e desenhar
+//        // Exemplo simplificado (faixa azul na tela):
+//        for (int y = 50; y < 100; y++) {
+//            for (int x = 0; x < 320; x++) {
+//                screenData[x][y] = 0x0000FF;
+//            }
+//        }
+//    }
+
+    /** Renderiza o plano B (tilemap secundário) */
+//    private void renderPlaneB() {
+//        // TODO: buscar no VRAM a tilemap de plano B e desenhar
+//        // Exemplo simplificado (faixa vermelha):
+//        for (int y = 120; y < 160; y++) {
+//            for (int x = 0; x < 320; x++) {
+//                screenData[x][y] = 0xFF0000;
+//            }
+//        }
+//    }
+
+    /** Renderiza a janela (window) */
+//    private void renderWindow() {
+//        // TODO: verificar registradores para posição da janela
+//        // Exemplo simplificado (quadrado verde canto superior esquerdo):
+//        for (int y = 0; y < 50; y++) {
+//            for (int x = 0; x < 100; x++) {
+//                screenData[x][y] = 0x00FF00;
+//            }
+//        }
+//    }
+
+    /** Renderiza os sprites */
+//    private void renderSprites() {
+//        // TODO: buscar Sprite Attribute Table no VRAM e renderizar
+//        // Exemplo simplificado (um pixel branco no centro da tela):
+//        screenData[160][112] = 0xFFFFFF;
+//    }
+	
+	
+	public void initColorsCache() {
+		for (int r = 0; r < 8; r++) {
+			for (int g = 0; g < 8; g++) {
+				for (int b = 0; b < 8; b++) {
+					int red = r;
+					if (r != 0) {
+						red = ((r + 1) * 32) - 1;
+					}
+
+					int green = g;
+					if (g != 0) {
+						green = ((g + 1) * 32) - 1;
+					}
+
+					int blue = b;
+					if (b != 0) {
+						blue = ((b + 1) * 32) - 1;
+					}
+
+					int color = red << 16 | green << 8 | blue;
+
+					colorsCache[r][g][b] = color;
+				}
+			}
+		}
+	}
+
 	
 	// The VDP has a complex system of priorities that can be used to achieve
 	// several complex effects. The priority order goes like follows, with the least
@@ -275,24 +1243,88 @@ public class VDP {
 	// Sprites with priority bit set
 	// Window Plane with priority bit set
 	private void compaginateImage() {
+		int regC = registers[0xC];
+		boolean rs0 = bitTest(regC, 7);
+		boolean rs1 = bitTest(regC, 0);
 
+		int limitHorTiles;
+		if (rs0 && rs1) {
+			limitHorTiles = 40;
+		} else {
+			limitHorTiles = 32;
+		}
+		// TODO 256 en modo pal
+		for (int j = 0; j < 224; j++) {
+			for (int i = 0; i < limitHorTiles * 8; i++) {
+				int backColor = planeBack[i][j];
+
+				boolean aPrio = planePrioA[i][j];
+				boolean bPrio = planePrioB[i][j];
+				boolean sPrio = spritesPrio[i][j];
+				boolean wPrio = windowPrio[i][j];
+
+				int aColor = planeIndexColorA[i][j];
+				int bColor = planeIndexColorB[i][j];
+				int wColor = windowIndex[i][j];
+				int spriteIndex = spritesIndex[i][j];
+
+				boolean aDraw = (aColor != 0);
+				boolean bDraw = (bColor != 0);
+				boolean sDraw = (spriteIndex != 0);
+				boolean wDraw = (wColor != 0);
+
+				boolean W = (wDraw && ((wPrio) // TODO comtenmplar que si dibuja W, no dibuje A en ese lugar
+						|| (!wPrio && (!sDraw || (sDraw && !sPrio)) && (!aDraw || (aDraw && !aPrio))
+								&& (!bDraw || (bDraw && !bPrio)))));
+
+				int pix = 0;
+				if (W) {
+					pix = window[i][j];
+					window[i][j] = 0;
+					windowIndex[i][j] = 0;
+				} else {
+					boolean S = (sDraw && ((sPrio) || (!sPrio && !aPrio && !bPrio) || (!sPrio && aPrio && !aDraw)
+							|| (!bDraw && bPrio && !sPrio && !aPrio)));
+					if (S) {
+						pix = sprites[i][j];
+						sprites[i][j] = 0;
+						spritesIndex[i][j] = 0;
+					} else {
+						boolean A = (aDraw && aPrio) || (aDraw && ((!bPrio) || (!bDraw)));
+						if (A) {
+							pix = planeA[i][j];
+						} else if (bDraw) {
+							pix = planeB[i][j];
+						} else {
+							pix = backColor;
+						}
+					}
+				}
+				screenData[i][j] = pix;
+
+				window[i][j] = 0;
+				windowIndex[i][j] = 0;
+				sprites[i][j] = 0;
+				spritesIndex[i][j] = 0;
+			}
+		}
 	}
 
 	/**
 	 * Retorna os sprites que aparecem na linha 'line'.
 	 */
-	private List<Sprite> spritesOnLine(int line) {
-		List<Sprite> result = new ArrayList<>();
-		for (Sprite s : sprites) {
-			int top = s.y;
-			int bottom = s.y + s.height * 8;
-
-			if (line >= top && line < bottom) {
-				result.add(s);
-			}
-		}
-		return result;
-	}
+//	private List<Sprite> spritesOnLine(int line) {
+//		List<Sprite> result = new ArrayList<>();
+//		for (Sprite s : sprites) {
+//			int top = s.y;
+//			int bottom = s.y + s.height * 8;
+//
+//			if (line >= top && line < bottom) {
+//				result.add(s);
+//			}
+//		}
+//		return result;
+//	}
 
 //    private int planePriorityAt(int x, int y) {
 //        // Lê o atributo de prioridade do plano A/B na posição
@@ -316,21 +1348,59 @@ public class VDP {
 	 * Avalia os sprites na VRAM e prepara para o próximo frame.
 	 */
 	private void evaluateSprites() {
-		sprites.clear();
+		int spriteTableLoc = registers[0x5] & 0x7F; // AT16 is only valid if 128 KB mode is enabled, and allows for
+													// rebasing the Sprite Attribute Table to the second 64 KB of VRAM.
+		int spriteTable = spriteTableLoc * 0x200;
 
-		// endereço base da tabela de sprites
-		int satAddress = (registers[5] & 0x7E) << 7;
+		int currSprite = 0;
+		for (int i = 0; i < 256; i++) {
+			lastIndexes[i] = 0;
+			for (int j = 0; j < 80; j++) {
+				spritesPerLine[i][j] = -1;
+			}
+		}
 
-		for (int i = 0; i < 80; i++) { // 80 sprites possíveis
-			int entryAddr = satAddress + i * 8;
+		int regC = registers[0xC];
+		boolean rs0 = bitTest(regC, 7);
+		boolean rs1 = bitTest(regC, 0);
 
-			int y = vram[entryAddr] & 0xFF;
-			int size = vram[entryAddr + 1] & 0xFF;
-			int tileIndex = vram[entryAddr + 2] | (vram[entryAddr + 3] << 8);
-			int x = vram[entryAddr + 6] | ((vram[entryAddr + 7] & 1) << 8);
+		int maxSprites = 64;
+		if (rs0 && rs1) {
+			maxSprites = 80;
+		}
 
-			// simplificado: assume 1x1 tile
-			sprites.add(new Sprite(x, y, tileIndex, 1, 1, 0, false, false, 0));
+		for (int i = 0; i < maxSprites; i++) {
+			long baseAddress = spriteTable + (i * 8);
+
+			int byte0 = vram[(int) (baseAddress)];
+			int byte1 = vram[(int) (baseAddress + 1)];
+			int byte2 = vram[(int) (baseAddress + 2)];
+			int byte3 = vram[(int) (baseAddress + 3)];
+			int byte4 = vram[(int) (baseAddress + 4)];
+			int byte5 = vram[(int) (baseAddress + 5)];
+			int byte6 = vram[(int) (baseAddress + 6)];
+			int byte7 = vram[(int) (baseAddress + 7)];
+
+			int linkData = byte3 & 0x7F;
+
+			int verticalPos = ((byte0 & 0x1) << 8) | byte1;
+			int verSize = byte2 & 0x3;
+
+			int verSizePixels = (verSize + 1) * 8;
+			int realY = (int) (verticalPos - 128);
+			for (int j = realY; j < realY + verSizePixels; j++) {
+				if (j < 0 || j > 255) {
+					continue;
+				}
+
+				int last = lastIndexes[j];
+				spritesPerLine[j][last] = i;
+				lastIndexes[j] = last + 1;
+			}
+
+			if (linkData == 0) {
+				return;
+			}
 		}
 	}
 
@@ -1152,6 +2222,16 @@ public class VDP {
 		autoIncrementTotal = incrementOffset;
 
 		return data;
+	}
+	
+	private int getColour(int red, int green, int blue) {
+		int c = colorsCache[red][green][blue];
+
+		return c;
+	}
+	
+	public boolean bitTest(long address, int position) {
+		return ((address & (1 << position)) != 0);
 	}
 
 	/**
