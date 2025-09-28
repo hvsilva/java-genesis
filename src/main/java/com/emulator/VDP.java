@@ -1,10 +1,5 @@
 package com.emulator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Arrays;
-import java.util.List;
-
 public class VDP {
 	public static final int WIDTH = 320;
 	public static final int HEIGHT = 224;
@@ -212,11 +207,11 @@ public class VDP {
 			if ((registers[1] & 0x40) == 0x40) {
 				if (line < 0xE0) {
 					spritesLine = 0;
-					renderBack();
-					renderPlaneA();
-					renderPlaneB();
-					renderWindow();
-					renderSprites();
+					renderBack();     // cor fixa
+					renderPlaneA();   // fundo
+					renderPlaneB();   // cenário principal
+					renderWindow();   // substitui parte do Plane A
+					renderSprites();  // objetos/personagens
 				}
 			}
 			if (line < 0xE0) {
