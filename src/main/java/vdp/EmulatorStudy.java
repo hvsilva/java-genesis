@@ -5,7 +5,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EmulatorStudy extends JFrame {
 	
-    private final Video video;
+	private static final long serialVersionUID = 1L;
+	
+	private final Video video;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private Thread emuThread;
 
@@ -70,12 +72,12 @@ public class EmulatorStudy extends JFrame {
     
 
     public void renderFrame() {
-        renderBack();
-        renderPlaneB();
-        renderPlaneA();
-        renderWindow();
-        renderSprites();
-        composeFrame();
+        renderBack();    //pinta o fundo
+        renderPlaneB();  //desenha o plano de fundo B
+        renderPlaneA();  //desenha o plano de fundo A
+        renderWindow();  //desenha a janela fixa
+        renderSprites(); //desenha personagens
+        composeFrame();  //junta tudo no framebuffer.
 
         int[] pixels = video.getPixels();
         int width = 320, height = 224;
@@ -98,6 +100,7 @@ public class EmulatorStudy extends JFrame {
         }
     }
 
+    //desenha o plano de fundo B (ex.: montanhas).
     private void renderPlaneB() {
         for (int y = 0; y < 224; y++) {
             for (int x = 0; x < 320; x++) {
@@ -106,6 +109,7 @@ public class EmulatorStudy extends JFrame {
         }
     }
 
+    //desenha o plano de fundo A (ex.: chão, cenários na frente).
     private void renderPlaneA() {
         for (int y = 0; y < 224; y++) {
             for (int x = 0; x < 320; x++) {
@@ -114,6 +118,7 @@ public class EmulatorStudy extends JFrame {
         }
     }
 
+    //desenha a janela fixa (ex.: placar ou HUD).
     private void renderWindow() {
         for (int y = 50; y < 100; y++) {
             for (int x = 100; x < 220; x++) {
@@ -122,6 +127,7 @@ public class EmulatorStudy extends JFrame {
         }
     }
 
+    //desenha personagens (Sonic, inimigos, itens).
     private void renderSprites() {
         for (int y = 120; y < 160; y++) {
             for (int x = 140; x < 180; x++) {
@@ -130,14 +136,15 @@ public class EmulatorStudy extends JFrame {
         }
     }
 
+    //junta tudo no framebuffer.
     private void composeFrame() {
         for (int y = 0; y < 224; y++) {
             for (int x = 0; x < 320; x++) {
                 int color = framebuffer[x][y]; // fundo
 
-                if (planeB[x][y] != 0) color = planeB[x][y];
-                if (planeA[x][y] != 0) color = planeA[x][y];
-                if (window[x][y] != 0) color = window[x][y];
+                if (planeB[x][y] != 0)  color = planeB[x][y];
+                if (planeA[x][y] != 0)  color = planeA[x][y];
+                if (window[x][y] != 0)  color = window[x][y];
                 if (sprites[x][y] != 0) color = sprites[x][y];
 
                 framebuffer[x][y] = color;

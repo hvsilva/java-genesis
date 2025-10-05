@@ -5,7 +5,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-public class Video extends JPanel {
+public class Video extends JPanel {	
+	
+	private static final long serialVersionUID = 1L;
 	
 	private final BufferedImage frame;
 	private final int[] pixels;

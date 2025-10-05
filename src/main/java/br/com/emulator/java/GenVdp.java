@@ -2052,7 +2052,6 @@ public class GenVdp {
 
 	private int getColour(int red, int green, int blue) {
 		int c = colorsCache[red][green][blue];
-
 		return c;
 	}
 
