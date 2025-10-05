@@ -17,6 +17,12 @@ public class EmulatorStudy extends JFrame {
     private int[][] window = new int[320][224];
     private int[][] sprites = new int[320][224];
     
+    // Variáveis globais no EmulatorStudy:
+    private int spriteX = 50;
+    private int spriteY = 130;
+    private int spriteSize = 16;
+    private int spriteDirection = 1; // 1 = direita, -1 = esquerda
+    
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(EmulatorStudy::new);
@@ -102,18 +108,21 @@ public class EmulatorStudy extends JFrame {
 
     //desenha o plano de fundo B (ex.: montanhas).
     private void renderPlaneB() {
+        // Fundo distante - Céu azul
         for (int y = 0; y < 224; y++) {
             for (int x = 0; x < 320; x++) {
-                planeB[x][y] = (x / 32 + y / 32) % 2 == 0 ? 0x004488 : 0x008844;
+                // Céu ocupa o terço superior da tela
+                framebuffer[x][y] = 0x87CEEB; // Azul claro (Sky Blue)
             }
         }
     }
 
     //desenha o plano de fundo A (ex.: chão, cenários na frente).
     private void renderPlaneA() {
-        for (int y = 0; y < 224; y++) {
+    	  // Camada do meio - Floresta verde
+        for (int y = 74; y < 150; y++) { // aproximadamente o terço central
             for (int x = 0; x < 320; x++) {
-                planeA[x][y] = (x / 16 + y / 16) % 2 == 0 ? 0xFFFFFF : 0xAAAAAA;
+                framebuffer[x][y] = 0x228B22; // Verde floresta
             }
         }
     }
@@ -129,10 +138,27 @@ public class EmulatorStudy extends JFrame {
 
     //desenha personagens (Sonic, inimigos, itens).
     private void renderSprites() {
-        for (int y = 120; y < 160; y++) {
-            for (int x = 140; x < 180; x++) {
-                sprites[x][y] = 0x0000FF; // azul
+    	 // Sprite: quadrado vermelho que se move
+        int color = 0xFF0000; // vermelho puro
+
+        for (int y = 0; y < spriteSize; y++) {
+            for (int x = 0; x < spriteSize; x++) {
+                int px = spriteX + x;
+                int py = spriteY + y;
+
+                // Verifica limites da tela
+                if (px >= 0 && px < 320 && py >= 0 && py < 224) {
+                    framebuffer[px][py] = color;
+                }
             }
+        }
+
+        // Atualiza posição do sprite (movimento horizontal simples)
+        spriteX += spriteDirection;
+
+        // Faz o sprite "quicar" nas bordas da tela
+        if (spriteX <= 0 || spriteX + spriteSize >= 320) {
+            spriteDirection *= -1; // inverte direção
         }
     }
 
