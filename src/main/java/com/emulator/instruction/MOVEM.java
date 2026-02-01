@@ -12,6 +12,7 @@ import com.emulator.addressing.AddressRegisterWithDisplacement;
 import com.emulator.addressing.AddressRegisterWithIndex;
 import com.emulator.addressing.PCWithDisplacement;
 import com.emulator.addressing.PCWithIndex;
+import com.emulator.instruction.interfaces.GenInstructionHandler;
 
 
 //NAME

@@ -3,6 +3,7 @@ package com.emulator.instruction;
 import com.emulator.CPU68000;
 import com.emulator.GenInstruction;
 import com.emulator.Size;
+import com.emulator.instruction.interfaces.GenInstructionHandler;
 
 //NAME
 //MOVEQ -- Move signed 8-bit data quick

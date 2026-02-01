@@ -168,7 +168,6 @@ public class EmulatorApp extends JFrame {
 		}
 	}
 	
-
 	public void renderScreen() {
 		 video.render(vdp.screenData);
 	}

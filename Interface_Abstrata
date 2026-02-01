@@ -1,0 +1,4 @@
+Dica prática:
+
+Use interface quando você quer padronizar comportamentos (ex: Desenhavel, Atualizavel, Movimentavel).
+Use classe abstrata quando várias classes compartilham parte do código, mas ainda precisam completar algo específico.

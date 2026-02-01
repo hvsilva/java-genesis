@@ -2,6 +2,7 @@ package com.emulator.instruction;
 
 import com.emulator.CPU68000;
 import com.emulator.GenInstruction;
+import com.emulator.instruction.interfaces.GenInstructionHandler;
 
 //NAME
 //EXG -- Register exchange
