@@ -18,7 +18,7 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class EmulatorApp extends Application {
+public class EmulatorAppFX extends Application {
 	
 	private Emulator emulator;
 	private AtomicBoolean running = new AtomicBoolean(false);
