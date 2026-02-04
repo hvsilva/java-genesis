@@ -930,7 +930,7 @@ public class GenVdp {
 	public void run(int cycles) {
 		totalCycles += cycles;
 		
-		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
+//		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
 
 		if (totalCycles < 800) {
 			hb = 0;

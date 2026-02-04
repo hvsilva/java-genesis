@@ -47,7 +47,7 @@ public class GenEmulator {
 
 	public long read(long address, Size size) {
 		
-		System.out.println("[CALL READ]: " + " [ADDRESS] : " + Long.toHexString(address) + " [SIZE] " + size);		
+//		System.out.println("[CALL READ]: " + " [ADDRESS] : " + Long.toHexString(address) + " [SIZE] " + size);		
 		
 		address = address & 0xFF_FFFF; // o mapa de memória 
 		long data;
