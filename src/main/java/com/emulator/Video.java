@@ -18,8 +18,6 @@ public class Video extends JPanel {
 
     private BufferedImage frame;   // sempre em 1x (ex: 320x256)
     private int[] pixels;          // pixels do frame
-    
-	private int currentMultiplier = 1;
 
     public Video(int width, int height) {
         this.width = width;
@@ -44,21 +42,9 @@ public class Video extends JPanel {
         revalidate();
         repaint();
     }
-    
-//    public void render(int[][] screenData) {         
-//        for (int y = 0; y < height; y++) {
-//            int row = y * width;
-//            for (int x = 0; x < width; x++) {
-//                // TESTE: Esqueça o screenData por um segundo. 
-//                // Se a tela ficar VERDE, o seu FrameBuffer está OK.
-//                // Se a tela continuar PRETA, o erro é no JFrame/Repaint.
-//                pixels[row + x] = 0x00FF00;  
-//            }
-//        }
-//        repaint();
-//    }
 
-    public void render(int[][] screenData) {     	
+
+    public void render(int[][] screenData) {
         for (int y = 0; y < height; y++) {
             int row = y * width;
             for (int x = 0; x < width; x++) {
@@ -67,31 +53,6 @@ public class Video extends JPanel {
         }
         repaint();
     }
-    
-//    public void render(int[][] screenData) {
-//        int m = currentMultiplier; // Ex: 2 ou 3
-//
-//        for (int y = 0; y < height; y++) {
-//            for (int x = 0; x < width; x++) {
-//                int color = screenData[x][y];
-//                
-//                // Desenha um bloco de pixels (m x m) para cada pixel original
-//                for (int sy = 0; sy < m; sy++) {
-//                    // Calcula a linha correta na tela grande
-//                    int targetY = (y * m) + sy;
-//                    int row = targetY * (width * m); 
-//                    
-//                    for (int sx = 0; sx < m; sx++) {
-//                        // Calcula a coluna correta na tela grande
-//                        int targetX = (x * m) + sx;
-//                        pixels[row + targetX] = color;
-//                    }
-//                }
-//            }
-//        }
-//        repaint();
-//    }    
-
 
     @Override
     protected void paintComponent(Graphics g) {

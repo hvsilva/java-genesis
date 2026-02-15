@@ -1254,7 +1254,6 @@ public class VDP {
 					}
 				}
 				screenData[i][j] = pix;
-
 				window[i][j] = 0;
 				windowIndex[i][j] = 0;
 				sprites[i][j] = 0;
