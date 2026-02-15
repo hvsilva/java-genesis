@@ -79,9 +79,15 @@ public class CPU68000 {
     			System.out.println("[Instruction]:" + instr);    	
     		} 
 
-            instr.run((int) opcode);  
+//    		System.err.printf("PC : %s%n", PC);
+//        	System.err.printf("Opcode : %s%n", opcode);
+//    		System.err.printf("Opcode : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));	
+          
+        	instr.run((int) opcode);  
             
-            PC = (PC + 2) & 0xFFFFFF;    
+            PC = (PC + 2) & 0xFFFFFF;   // Avança o program counter (normalmente 2 bytes para 68000)
+            
+//            System.err.printf("PC : %s%n", PC);
 
 //            cycles = instr.getCycles(opcode); 
         } else {
@@ -319,7 +325,7 @@ public class CPU68000 {
 	    return (SR >> 8) & 0x7; // bits 8-10 = interrupt mask
 	}
 	
-//	Condition code 'cc' specifies one of the following:
+//Condition code 'cc' specifies one of the following:
 //0000 F  False            Z = 1      1000 VC oVerflow Clear   V = 0
 //0001 T  True             Z = 0      1001 VS oVerflow Set     V = 1
 //0010 HI HIgh             C + Z = 0  1010 PL PLus             N = 0

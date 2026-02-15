@@ -261,8 +261,12 @@ public class GenVdp {
 	}
 
 	private void writeRamAddress(long data) {
+		
+		System.out.println("[CALL writeRamAddress]:");		
+		
 		if (!addressSecondWrite) {
-			System.out.println("first");
+			
+			System.out.println("[first]");
 
 			firstWrite = data;
 			addressSecondWrite = true;
@@ -277,7 +281,9 @@ public class GenVdp {
 			int code = (int) ((first >> 14) | (((second >> 4) & 0xF) << 2));
 			int addr = (int) ((first & 0x3FFF) | ((second & 0x3) << 14));
 
-			System.out.println("second code " + Integer.toHexString(code));
+			System.out.println("[second]");
+			System.out.println("code: " + code);
+			System.out.println("addr: " + addr);
 
 			addressPort = addr;
 			autoIncrementTotal = 0; // reset este acumulador
@@ -287,8 +293,10 @@ public class GenVdp {
 			vramWrite2 = false;
 			vsramWrite2 = false;
 
-			int addressMode = code & 0xF; // solo el primer byte, el bit 4 y 5 son para DMA
-											// que ya fue contemplado arriba
+			int addressMode = code & 0xF; // solo el primer byte, el bit 4 y 5 son para DMA que ya fue contemplado arriba
+			
+			System.out.println("addressMode: " + addressMode);
+			
 			if (addressMode == 0b0000) { // VRAM Read
 				vramMode = VramMode.vramRead;
 
@@ -353,13 +361,14 @@ public class GenVdp {
 		
 		System.out.printf("[WRITE REGISTER] : regIndx=%d registers[reg]=%04X%n", reg, registers[reg]);
 
-		registers[reg] = dataControl;
+		registers[reg] = dataControl;		
 		
-		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X)  registers[reg]=%04X%n", reg, dataControl, dataControl, registers[reg]);
-//		
-//		if (registers[1] == 116) {
-//			System.out.println("modo 5");			
-//		}
+		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X) registersHex[reg]=%04X registersDec[reg]=%d%n",reg, dataControl, dataControl, registers[reg], registers[reg]); 
+			    
+		
+		if (registers[1] != 0) {
+			System.out.println("modo 5");			
+		}
 
 		if (reg == 0x00) {
 			vsi = ((data >> 7) & 1) == 1;
@@ -1318,6 +1327,8 @@ public class GenVdp {
 		int b = (backColor >> 9) & 0x7;
 
 		backColor = getColour(r, g, b);
+		
+		System.out.println("[BACKCOLOR] : " + backColor);
 
 		for (int pixel = 0; pixel < (limitHorTiles * 8); pixel++) {
 			if (!disp) {

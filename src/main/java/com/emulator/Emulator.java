@@ -110,7 +110,6 @@ public class Emulator {
     
 	int[] banks = new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-
     public Emulator(Memory memory, EmulatorApp emu) {
 		this.memory = memory;
 		this.cpu = new CPU68000(this);
@@ -207,9 +206,7 @@ public class Emulator {
 				new PCWithDisplacement(cpu), 
 				new PCWithIndex(cpu),
 				new ImmediateData(cpu), //somente se for um operando fonte TODO, se estiver escrevendo é StatusRegisterOperand
-		};
-		
-		
+		};		
     }
     
     // =======================
@@ -217,7 +214,7 @@ public class Emulator {
  	// =======================
  	public long read(long address, Size size) {
 
- 	    System.out.println("[CALL READ]: " + " [ADDRESS] : " + Long.toHexString(address) + " [SIZE] " + size);
+// 	    System.out.println("[CALL READ]: " + " [ADDRESS] : " + Long.toHexString(address) + " [SIZE] " + size);
 
  	    address &= 0xFF_FFFF; // máscara 24-bit
  	    long data = 0;
@@ -433,7 +430,10 @@ public class Emulator {
 	// =======================
 	public long write(long address, long data, Size size) {
 
-		System.out.println("[CALL WRITE]: " + Long.toHexString(address) + " - " + size + " - " + Long.toHexString(data));				
+		System.out.println("[CALL WRITE]: " 
+				+ " [ADDRESS : " + Long.toHexString(address) + "]"
+				+ " [SIZE : " + size +  "]"
+				+ " [DATA HEX : " + Long.toHexString(data) +  "]");			
 
 		long addressL = (address & 0xFFFFFF); // 24-bit mask (68k bus)
 
@@ -537,6 +537,10 @@ public class Emulator {
 	            vdp.writeControlPort((data >> 16) & 0xFFFF);
 	            vdp.writeControlPort(data & 0xFFFF);
 	        }
+	    } else if (addressL == 0xC00011) {	//	PSG output
+			System.out.println("PSG Output");
+			// TODO implement audio		http://md.squee.co/PSG
+	    	
 	    }
 
 	    // =================================================

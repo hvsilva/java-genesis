@@ -84,8 +84,7 @@ public class CPU68000 {
 
 	public int runInstruction(boolean print) {
 	    // Busca o opcode da memória (bus) na posição do PC (Program Counter)
-		long opcode = bus.read(PC, Size.WORD);		
-
+		long opcode = bus.read(PC, Size.WORD);
 
 		sb.setLength(0); // Limpa buffer de debug
 
@@ -146,12 +145,18 @@ public class CPU68000 {
             System.err.printf("Opcode : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));			
 			System.out.println(sb.toString()); // Imprime estado se solicitado		
 		}
+		
+//		System.err.printf("PC : %s%n", PC);
+//    	System.err.printf("Opcode : %s%n", opcode);
+//		System.err.printf("Opcode : %04X [GRUPO]: %s%n", opcode,  OpcodeDecoder.decode((int) opcode));	
 
 		 // Busca e executa a instrução decodificada
 		GenInstruction instruction = getInstruction((int) opcode);
 		instruction.run((int) opcode);
 
 		PC += 2; // Avança o program counter (normalmente 2 bytes para 68000)
+		
+//		System.err.printf("PC : %s%n", PC);
 
 		return 0;
 	}
@@ -626,7 +631,7 @@ public class CPU68000 {
 		instructions[opcode] = ins;
 	}
 
-//	Condition code 'cc' specifies one of the following:
+//Condition code 'cc' specifies one of the following:
 //0000 F  False            Z = 1      1000 VC oVerflow Clear   V = 0
 //0001 T  True             Z = 0      1001 VS oVerflow Set     V = 1
 //0010 HI HIgh             C + Z = 0  1010 PL PLus             N = 0

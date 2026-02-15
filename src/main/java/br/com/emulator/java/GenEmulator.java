@@ -176,7 +176,7 @@ public class GenEmulator {
 			if (size == Size.BYTE) {
 				return joypad.readControlRegister1() & 0xFF;
 			} else {
-				return joypad.readControlRegister1();
+//				return joypad.readControlRegister1();
 			}
 
 		} else if (address == 0xA1000A || address == 0xA1000B) { // Controller 2 control
@@ -260,7 +260,8 @@ public class GenEmulator {
 //	https://wiki.megadrive.org/index.php?title=IO_Registers
 	public void write(long address, long data, Size size) {
 		
-		System.out.println("[CALL WRITE]: " + "[ADDRESS : " + Long.toHexString(address) + "]"
+		System.out.println("[CALL WRITE]: " 
+		+ " [ADDRESS : " + Long.toHexString(address) + "]"
 		+ " [SIZE : " + size +  "]"
 		+ " [DATA HEX : " + Long.toHexString(data) +  "]");	
 		

@@ -15,6 +15,8 @@ public class VDP {
 	VramMode vramMode;
 
 	DmaMode dmaModo;
+	
+	Emulator bus;
 
 	// Memória de vídeo
 	int[] vram = new int[0x10000];
@@ -32,7 +34,7 @@ public class VDP {
 	int[] framebuffer = new int[WIDTH * HEIGHT];
 
 	// Controle de ciclos/linha/quadro
-	private int totalCycles = 0;
+	public int totalCycles = 0;
 
 	// Flags
 	boolean vblank = false;
@@ -185,10 +187,9 @@ public class VDP {
 	int[][] spritesPerLine = new int[256][80];
 	int[] lastIndexes = new int[256];
 	
-	Emulator bus;
-	
 	public VDP(Emulator bus) {
 		this.bus = bus;
+		initColorsCache();
 	}
 
 	/**
@@ -197,7 +198,7 @@ public class VDP {
 	public void run(int cycles) {
 		totalCycles += cycles;
 		
-		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
+//		System.out.printf("[LINE=%d (reg1=%s)]%n", line, registers[1]);
 
 		if (totalCycles < 800) {
 			hb = 0;
@@ -235,10 +236,8 @@ public class VDP {
 			vb = 1;
 			spritesFrame = 0;
 			if ((registers[1] & 0x40) == 0x40) {
-				compaginateImage();
-				
-				// depois que a tela está composta, envia para o Video
-				bus.emu.renderScreen();
+				compaginateImage();					
+				bus.emu.renderScreen(); // depois que a tela está composta, envia para o Video
 			}
 		} else if (line < 0xE0 && ((registers[1] & 0x40) == 0x40)) {   // somente em 0 se o display estiver ligado (desligado está sempre em 1)													
 			vb = 0;
@@ -277,6 +276,8 @@ public class VDP {
 		int b = (backColor >> 9) & 0x7;
 
 		backColor = getColour(r, g, b);
+		
+//		System.out.println("[BACKCOLOR] : " + backColor);
 
 		for (int pixel = 0; pixel < (limitHorTiles * 8); pixel++) {
 			if (!disp) {
@@ -286,6 +287,13 @@ public class VDP {
 			}
 		}
 	}
+	
+//	void renderBack() {
+//	    for (int x = 0; x < 320; x++) {
+//	        // Força um Azul (0xFF0000FF) para testar se a tela acende
+//	        this.screenData[x][this.line] = 0x0000FF; 
+//	    }
+//	}
 
 	private void renderPlaneA() {
 		int nameTableLocation = registers[2] & 0x38; // bit 6 para modo extendido de vram, no lo emulo
@@ -1146,56 +1154,6 @@ public class VDP {
 		}
 	}
 	
-    /** Renderiza o fundo (background color) */
-//    private void renderBack() {
-//        for (int y = 0; y < 224; y++) {
-//            for (int x = 0; x < 320; x++) {
-//                screenData[x][y] = bgColor;
-//            }
-//        }
-//    }
-
-    /** Renderiza o plano A (tilemap) */
-//    private void renderPlaneA() {
-//        // TODO: buscar no VRAM a tilemap de plano A e desenhar
-//        // Exemplo simplificado (faixa azul na tela):
-//        for (int y = 50; y < 100; y++) {
-//            for (int x = 0; x < 320; x++) {
-//                screenData[x][y] = 0x0000FF;
-//            }
-//        }
-//    }
-
-    /** Renderiza o plano B (tilemap secundário) */
-//    private void renderPlaneB() {
-//        // TODO: buscar no VRAM a tilemap de plano B e desenhar
-//        // Exemplo simplificado (faixa vermelha):
-//        for (int y = 120; y < 160; y++) {
-//            for (int x = 0; x < 320; x++) {
-//                screenData[x][y] = 0xFF0000;
-//            }
-//        }
-//    }
-
-    /** Renderiza a janela (window) */
-//    private void renderWindow() {
-//        // TODO: verificar registradores para posição da janela
-//        // Exemplo simplificado (quadrado verde canto superior esquerdo):
-//        for (int y = 0; y < 50; y++) {
-//            for (int x = 0; x < 100; x++) {
-//                screenData[x][y] = 0x00FF00;
-//            }
-//        }
-//    }
-
-    /** Renderiza os sprites */
-//    private void renderSprites() {
-//        // TODO: buscar Sprite Attribute Table no VRAM e renderizar
-//        // Exemplo simplificado (um pixel branco no centro da tela):
-//        screenData[160][112] = 0xFFFFFF;
-//    }
-	
-	
 	public void initColorsCache() {
 		for (int r = 0; r < 8; r++) {
 			for (int g = 0; g < 8; g++) {
@@ -1787,9 +1745,9 @@ public class VDP {
 
 		registers[reg] = dataControl;
 		
-		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X)  registers[reg]=%04X%n", reg, dataControl, dataControl, registers[reg]);
+		System.out.printf("[WRITE REGISTER NEW] : regIndx=%d dataDec=%d (dataHex=%04X) registersHex[reg]=%04X registersDec[reg]=%d%n",reg, dataControl, dataControl, registers[reg], registers[reg]); 
 		
-		if (registers[1] == 116) {
+		if (registers[1] != 0) {
 			System.out.println("modo 5");			
 		}
 
@@ -1883,7 +1841,7 @@ public class VDP {
 		int index, data;
 		while (dmaLength > 0) {
 
-			int dataWord = (int) read(sourceTrue, Size.WORD);
+			int dataWord = (int) bus.read(sourceTrue, Size.WORD);
 			int data1 = dataWord >> 8;
 			int data2 = dataWord & 0xFF;
 
@@ -2221,7 +2179,6 @@ public class VDP {
 	
 	private int getColour(int red, int green, int blue) {
 		int c = colorsCache[red][green][blue];
-
 		return c;
 	}
 	
@@ -2242,5 +2199,9 @@ public class VDP {
 
 	public boolean isHBlank() {
 		return hblank;
+	}
+	
+	public int getTotalCycles() {
+	    return this.totalCycles;
 	}
 }

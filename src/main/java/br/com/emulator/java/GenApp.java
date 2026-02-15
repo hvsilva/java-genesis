@@ -548,11 +548,11 @@ public class GenApp {
 	void loop() {
 		try {
 			for (;;) {
-				if (runZ80) { // TODO fazer com que você use a velocidade correta e tenha um fio distinto
-					int opcode = z80.readMemory(z80.PC);
-					z80.PC = (z80.PC + 1) & 0xFFFF;
-					z80.executeInstruction(opcode);
-				}
+//				if (runZ80) { // TODO fazer com que você use a velocidade correta e tenha um fio distinto
+//					int opcode = z80.readMemory(z80.PC);
+//					z80.PC = (z80.PC + 1) & 0xFFFF;
+//					z80.executeInstruction(opcode);
+//				}
 				// Execução da CPU 68000 (principal)
 				if (!cpu.stop) {
 					cpu.runInstruction(false);// Executa próxima instrução da CPU principal
@@ -574,7 +574,7 @@ public class GenApp {
 			for (int j = 0; j < 320; j++) {				
 				int color = vdp.screenData[j][i];
 				int pos = ((i * m) * (320 * m)) + (j * m);
-				pixels[pos] = color;
+				pixels[pos] = color;			
 			}
 		}
 		jframe.repaint();

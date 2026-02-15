@@ -2,8 +2,6 @@ package com.emulator;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.prefs.Preferences;
@@ -33,13 +31,6 @@ public class EmulatorApp extends JFrame {
 	private final JLabel info;
 	private final Video video;
 
-	
-	private int currentMultiplier = 1;
-	
-	static BufferedImage img = new BufferedImage(320, 256, BufferedImage.TYPE_INT_RGB);
-	
-	private static int[] pixels;
-
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(EmulatorApp::new);
 	}
@@ -53,13 +44,8 @@ public class EmulatorApp extends JFrame {
 		cpu = emulator.getCpu();
 		vdp = emulator.getVdp();			
 
-
-	    // cria buffer inicial
-	    img = new BufferedImage(320, 224, BufferedImage.TYPE_INT_RGB);
-	    pixels = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
-
 		// --- Área de vídeo ---
-		video = new Video(320, 224);
+		video = new Video(320, 256);
 
 		// --- Barra superior ---
 		JButton loadBtn = new JButton("Load ROM");
@@ -135,22 +121,69 @@ public class EmulatorApp extends JFrame {
 		emuThread.start();
 	}
 
+//	private void loop() {
+//	    try {
+//	        while (running.get()) {   // usa running como condição
+//	            if (!emulator.getCpu().stop) {
+//	                emulator.getCpu().runInstruction(false);
+//	            }
+//
+//	            emulator.checkInterrupts();
+//	            emulator.getVdp().run(13);   // Roda 13 ciclos do VDP (ajustável para sincronismo)
+//	            emulator.getVdp().dmaFill(); // DMA do VDP (preenchimento de memória de vídeo)
+//	            emulator.getVdp().dmaFill(); // DMA do VDP (executado duas vezes por ciclo)
+//	        }
+//	    } catch (RuntimeException e) {
+//	        e.printStackTrace();
+//	    }
+//	}	
+	
 	private void loop() {
+	    long targetFrameTime = 16; 
+	    
 	    try {
-	        while (running.get()) {   // usa running como condição
-	            if (!emulator.getCpu().stop) {
-	                emulator.getCpu().runInstruction(false);
-	            }
+	        while (running.get()) {
+	            long frameStartTime = System.currentTimeMillis();
 
-	            emulator.checkInterrupts();
-	            emulator.getVdp().run(13);
-	            emulator.getVdp().dmaFill();
-	            emulator.getVdp().dmaFill();
+	            // Roda o processamento até o VDP completar um frame (262 linhas)
+	            for (int i = 0; i < 262; i++) {
+//	                int currentLine = emulator.getVdp().line;
+//	                
+//	                // Enquanto o VDP não mudar de linha, a CPU continua trabalhando
+//	                // Adicionamos um limite de segurança (1000) para não travar
+//	                int safety = 0;
+//	                while (emulator.getVdp().line == currentLine && safety < 1000) {
+//	                    if (!emulator.getCpu().stop) {
+//	                        emulator.getCpu().runInstruction(false);
+//	                    }
+//	                    emulator.checkInterrupts();
+//	                    emulator.getVdp().run(13); // Esses 13 ciclos fazem a 'line' subir eventualmente
+//	                    emulator.getVdp().dmaFill();
+//	                    emulator.getVdp().dmaFill();
+//	                    safety++;
+//	                }
+	            	
+	                for (int j = 0; j < 45; j++) { // Executa ~45 instruções por linha
+		                if (!emulator.getCpu().stop) {
+		                    emulator.getCpu().runInstruction(false);
+		                }
+		                emulator.checkInterrupts();
+		                emulator.getVdp().run(13);   // 13 ciclos de VDP por instrução
+		                emulator.getVdp().dmaFill(); // DMA do VDP (preenchimento de memória de vídeo)
+	                    emulator.getVdp().dmaFill(); // DMA do VDP (executado duas vezes por ciclo)
+		               
+		            }
+	            }
+	
+	            // O contador de FPS e o Sleep continuam aqui embaixo...
+	            long timeSpent = System.currentTimeMillis() - frameStartTime;
+	            if (timeSpent < targetFrameTime) {
+	                Thread.sleep(targetFrameTime - timeSpent);
+	            }
 	        }
-	    } catch (RuntimeException e) {
-	        e.printStackTrace();
-	    }
+	    } catch (Exception e) { e.printStackTrace(); }
 	}
+	
 	public void stop() {
 		running.set(false);
 		if (emuThread != null) {
@@ -169,6 +202,6 @@ public class EmulatorApp extends JFrame {
 	}
 	
 	public void renderScreen() {
-		 video.render(vdp.screenData);
+		video.render(vdp.screenData);
 	}
 }
